@@ -1,0 +1,9 @@
+/home/uk3ndt/programming/private/game/spacetimedb-game-demo/target/debug/deps/libspacetimedb_primitives-3328fd43e7565064.rmeta: /home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-primitives-1.2.0/src/lib.rs /home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-primitives-1.2.0/src/attr.rs /home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-primitives-1.2.0/src/col_list.rs /home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-primitives-1.2.0/src/errno.rs /home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-primitives-1.2.0/src/ids.rs
+
+/home/uk3ndt/programming/private/game/spacetimedb-game-demo/target/debug/deps/spacetimedb_primitives-3328fd43e7565064.d: /home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-primitives-1.2.0/src/lib.rs /home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-primitives-1.2.0/src/attr.rs /home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-primitives-1.2.0/src/col_list.rs /home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-primitives-1.2.0/src/errno.rs /home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-primitives-1.2.0/src/ids.rs
+
+/home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-primitives-1.2.0/src/lib.rs:
+/home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-primitives-1.2.0/src/attr.rs:
+/home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-primitives-1.2.0/src/col_list.rs:
+/home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-primitives-1.2.0/src/errno.rs:
+/home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-primitives-1.2.0/src/ids.rs:
