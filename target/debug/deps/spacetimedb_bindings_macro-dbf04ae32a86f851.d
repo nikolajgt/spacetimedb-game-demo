@@ -1,9 +1,0 @@
-/home/uk3ndt/programming/private/game/spacetimedb-game-demo/target/debug/deps/libspacetimedb_bindings_macro-dbf04ae32a86f851.so: /home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-bindings-macro-1.2.0/src/lib.rs /home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-bindings-macro-1.2.0/src/reducer.rs /home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-bindings-macro-1.2.0/src/sats.rs /home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-bindings-macro-1.2.0/src/table.rs /home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-bindings-macro-1.2.0/src/util.rs
-
-/home/uk3ndt/programming/private/game/spacetimedb-game-demo/target/debug/deps/spacetimedb_bindings_macro-dbf04ae32a86f851.d: /home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-bindings-macro-1.2.0/src/lib.rs /home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-bindings-macro-1.2.0/src/reducer.rs /home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-bindings-macro-1.2.0/src/sats.rs /home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-bindings-macro-1.2.0/src/table.rs /home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-bindings-macro-1.2.0/src/util.rs
-
-/home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-bindings-macro-1.2.0/src/lib.rs:
-/home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-bindings-macro-1.2.0/src/reducer.rs:
-/home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-bindings-macro-1.2.0/src/sats.rs:
-/home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-bindings-macro-1.2.0/src/table.rs:
-/home/uk3ndt/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spacetimedb-bindings-macro-1.2.0/src/util.rs:

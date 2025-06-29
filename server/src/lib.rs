@@ -1,34 +1,68 @@
-use spacetimedb::{ReducerContext, Table};
+use spacetimedb::*;
+use spacetimedb::sats::AlgebraicType;
+use spacetimedb::sats::typespace::TypespaceBuilder;
 
-#[spacetimedb::table(name = person)]
-pub struct Person {
-    name: String
+
+#[table(name = player, public)]
+pub struct Player {
+    #[primary_key]
+    id: Identity,
+    identity: Identity,
+    name: Option<String>,
+    online: bool,
 }
 
-#[spacetimedb::reducer(init)]
+#[table(name = player_movement, public)]
+pub struct PlayerMovementState {
+    #[primary_key]
+    pub player_id: Identity,
+
+    pub pos_x: f32,
+    pub pos_y: f32,
+    pub pos_z: f32,
+
+    pub dir_x: f32,
+    pub dir_y: f32,
+    pub dir_z: f32,
+
+    pub mode: u8,
+    pub direction: u8,
+}
+
+#[reducer]
+pub fn register_player(ctx: &ReducerContext) {
+    if let None = ctx.db.player().iter().find(|p| p.id == ctx.identity()) {
+        log::warn!("Player {} was already registered", ctx.identity());
+        return;
+    };
+    ctx.db().player().insert(Player {
+        id: ctx.identity(),
+        identity: ctx.identity(),
+        name: None,
+        online: true,
+    });
+    log::info!("Player {} registered", ctx.identity());
+}
+
+#[reducer(init)]
 pub fn init(_ctx: &ReducerContext) {
     // Called when the module is initially published
+    log::info!("Initializing module");
 }
 
-#[spacetimedb::reducer(client_connected)]
+#[reducer(client_connected)]
 pub fn identity_connected(_ctx: &ReducerContext) {
     // Called everytime a new client connects
+    log::info!("Identity connected");
 }
 
-#[spacetimedb::reducer(client_disconnected)]
-pub fn identity_disconnected(_ctx: &ReducerContext) {
-    // Called everytime a client disconnects
-}
-
-#[spacetimedb::reducer]
-pub fn add(ctx: &ReducerContext, name: String) {
-    ctx.db.person().insert(Person { name });
-}
-
-#[spacetimedb::reducer]
-pub fn say_hello(ctx: &ReducerContext) {
-    for person in ctx.db.person().iter() {
-        log::info!("Hello, {}!", person.name);
+#[reducer(client_disconnected)]
+pub fn identity_disconnected(ctx: &ReducerContext) {
+    let identity = ctx.identity();
+    let player = ctx.db().player().iter().find(|p| p.identity == identity);
+    if let Some(mut player) = player {
+        player.online = false;
+        log::info!("Player {} disconnected", player.identity);
     }
-    log::info!("Hello, World!");
 }
+
