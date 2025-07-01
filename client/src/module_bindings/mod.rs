@@ -38,7 +38,7 @@ pub use register_player_reducer::{
 pub enum Reducer {
     IdentityConnected,
     IdentityDisconnected,
-    RegisterPlayer,
+    RegisterPlayer { name: String },
 }
 
 impl __sdk::InModule for Reducer {
@@ -50,7 +50,7 @@ impl __sdk::Reducer for Reducer {
         match self {
             Reducer::IdentityConnected => "identity_connected",
             Reducer::IdentityDisconnected => "identity_disconnected",
-            Reducer::RegisterPlayer => "register_player",
+            Reducer::RegisterPlayer { .. } => "register_player",
         }
     }
 }

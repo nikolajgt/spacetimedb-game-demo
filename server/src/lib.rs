@@ -30,19 +30,22 @@ pub struct PlayerMovementState {
 }
 
 #[reducer]
-pub fn register_player(ctx: &ReducerContext) {
-    if let None = ctx.db.player().iter().find(|p| p.id == ctx.identity()) {
+pub fn register_player(ctx: &ReducerContext, name: String) {
+    if ctx.db().player().iter().any(|p| p.id == ctx.identity()) {
         log::warn!("Player {} was already registered", ctx.identity());
         return;
-    };
+    }
+
     ctx.db().player().insert(Player {
         id: ctx.identity(),
         identity: ctx.identity(),
-        name: None,
+        name: Some(name),
         online: true,
     });
+
     log::info!("Player {} registered", ctx.identity());
 }
+
 
 #[reducer(init)]
 pub fn init(_ctx: &ReducerContext) {

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+bevy = "0.16.1"
 bevy_spacetimedb = "0.6.0"
 hex = "0.4.3"
 spacetimedb-sdk = "1.2.0"
