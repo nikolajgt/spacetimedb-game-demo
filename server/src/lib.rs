@@ -1,3 +1,4 @@
+use log::warn;
 use spacetimedb::*;
 use spacetimedb::sats::AlgebraicType;
 use spacetimedb::sats::typespace::TypespaceBuilder;
@@ -7,8 +8,7 @@ use spacetimedb::sats::typespace::TypespaceBuilder;
 pub struct Player {
     #[primary_key]
     id: Identity,
-    identity: Identity,
-    name: String,
+    name: Option<String>,
     online: bool,
 }
 
@@ -31,25 +31,18 @@ pub struct PlayerMovementState {
 
 #[reducer]
 pub fn register_player(ctx: &ReducerContext, name: String) {
-    if ctx
-        .db()
-        .player()
-        .iter()
-        .any(|p| p.name.eq(&name) && p.online)
-    {
-        log::warn!("A player named '{}' is already online. Identity: {}", name, ctx.identity());
-        return;
+    if let Some(mut player) = ctx.db().player().id().find(ctx.sender) {
+        player.online = true;
+        ctx.db().player().id().update(player);
+    } else {
+        ctx.db().player().insert(Player {
+            id: ctx.sender.clone(),
+            name: Some(name),
+            online: true,
+        });
     }
-
-    ctx.db().player().insert(Player {
-        id: ctx.identity(),
-        identity: ctx.identity(),
-        name: name.clone(),
-        online: true,
-    });
-
-    log::info!("Player {} registered", name);
 }
+
 
 
 #[reducer(init)]
@@ -66,11 +59,11 @@ pub fn identity_connected(_ctx: &ReducerContext) {
 
 #[reducer(client_disconnected)]
 pub fn identity_disconnected(ctx: &ReducerContext) {
-    let identity = ctx.identity();
-    let player = ctx.db().player().iter().find(|p| p.identity == identity);
-    if let Some(mut player) = player {
+    if let Some(mut player) = ctx.db().player().id().find(ctx.sender) {
         player.online = false;
-        log::info!("Player {} disconnected", player.identity);
+        ctx.db().player().id().update(player);
+    } else {
+        warn!("Disconnected player was not found to set offline")
     }
 }
 

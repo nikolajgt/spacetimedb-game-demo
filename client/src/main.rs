@@ -1,5 +1,6 @@
 mod module_bindings;
 
+use bevy::log;
 use bevy::log::LogPlugin;
 use bevy::log::tracing::instrument::WithSubscriber;
 use bevy::prelude::*;
@@ -63,7 +64,7 @@ fn main() {
         )
         .add_systems(
             Update,
-            (on_connected, on_register_player, on_player),
+            (on_connected, on_register_player, on_player, on_disconnect),
         )
         .run();
     
@@ -83,7 +84,7 @@ fn on_connected(
             .subscribe("SELECT * FROM player");
         
         
-        let name = "Player8".to_string();
+        let name = "Player54116".to_string();
         stdb.reducers().register_player(name.clone()).expect("TODO: panic message");
         info!("Player {:?} trying to register", name);
     }
@@ -107,5 +108,19 @@ fn on_player(mut events: ReadUpdateEvent<Player>) {
     for event in events.read() {
         let test = event.new.clone();
         info!("Player inserted: {:?}", test);
+    }
+}
+
+fn on_disconnect(
+    mut events: EventReader<StdbDisconnectedEvent>,
+    stdb: Res<StdbConnection<DbConnection>>,
+) {
+    for event in events.read() {
+        match stdb.disconnect() {
+            Ok(result) => {},
+            Err(err) => {
+                log::warn!("{:?}", err);
+            }
+        }
     }
 }

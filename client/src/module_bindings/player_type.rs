@@ -10,8 +10,7 @@ use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 #[sats(crate = __lib)]
 pub struct Player {
     pub id: __sdk::Identity,
-    pub identity: __sdk::Identity,
-    pub name: String,
+    pub name: Option<String>,
     pub online: bool,
 }
 
