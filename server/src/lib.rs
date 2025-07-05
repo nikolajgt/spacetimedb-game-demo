@@ -8,7 +8,7 @@ pub struct Player {
     #[primary_key]
     id: Identity,
     identity: Identity,
-    name: Option<String>,
+    name: String,
     online: bool,
 }
 
@@ -31,19 +31,24 @@ pub struct PlayerMovementState {
 
 #[reducer]
 pub fn register_player(ctx: &ReducerContext, name: String) {
-    if ctx.db().player().iter().any(|p| p.id == ctx.identity()) {
-        log::warn!("Player {} was already registered", ctx.identity());
+    if ctx
+        .db()
+        .player()
+        .iter()
+        .any(|p| p.name.eq(&name) && p.online)
+    {
+        log::warn!("A player named '{}' is already online. Identity: {}", name, ctx.identity());
         return;
     }
 
     ctx.db().player().insert(Player {
         id: ctx.identity(),
         identity: ctx.identity(),
-        name: Some(name),
+        name: name.clone(),
         online: true,
     });
 
-    log::info!("Player {} registered", ctx.identity());
+    log::info!("Player {} registered", name);
 }
 
 

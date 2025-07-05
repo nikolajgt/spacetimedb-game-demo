@@ -1,14 +1,14 @@
 mod module_bindings;
 
 use bevy::log::LogPlugin;
+use bevy::log::tracing::instrument::WithSubscriber;
 use bevy::prelude::*;
 use bevy_spacetimedb::*;
-use spacetimedb_sdk::{ReducerEvent, Table};
+use spacetimedb_sdk::{ReducerEvent, SubscriptionHandle, Table};
 use module_bindings::*;
 
 #[derive(Clone, Debug, Event)]
 pub struct RegisterPlayerEvent {
-    pub event: ReducerEvent<Reducer>,
     pub name: String,
 }
 
@@ -22,8 +22,6 @@ pub struct OnRegisterPlayerEvent {
 
 fn main() {
     App::new()
-        .add_event::<RegisterPlayerEvent>()
-        .add_event::<OnRegisterPlayerEvent>()
         .add_plugins((MinimalPlugins, LogPlugin::default()))
         .add_plugins(
             StdbPlugin::default()
@@ -46,17 +44,16 @@ fn main() {
                         })
                         .build()
                         .expect("SpacetimeDB connection failed");
-
                     conn.run_threaded();
                     conn
                 })
                 .with_events(|plugin, app, db, reducers| {
                     tables!(
                         player,
+                        player_movement
                     );
 
                     register_reducers!(
-       
                         on_register_player(ctx, name) => OnRegisterPlayerEvent {
                             event: ctx.event.clone(),
                             name: name.clone()
@@ -80,31 +77,35 @@ fn on_connected(
 ) {
     for _ in events.read() {
         info!("Connected to SpacetimeDB");
-
-        // Call any reducers
-        stdb.reducers().register_player("test".to_string()).expect("TODO: panic message");
-
-        // Subscribe to any tables
         stdb.subscribe()
             .on_applied(|_| info!("Subscription to players applied"))
             .on_error(|_, err| error!("Subscription to players failed for: {}", err))
             .subscribe("SELECT * FROM player");
-
-        // Access your database cache (since it's not yet populated here this line might return 0)
-        let playerCount = stdb.db().player().count();
-        info!("Players count: {}", playerCount);
+        
+        
+        let name = "Player8".to_string();
+        stdb.reducers().register_player(name.clone()).expect("TODO: panic message");
+        info!("Player {:?} trying to register", name);
     }
 }
 
-fn on_register_player(mut events: ReadReducerEvent<OnRegisterPlayerEvent>) {
+fn on_register_player(
+    mut events: ReadReducerEvent<OnRegisterPlayerEvent>,
+    stdb: Res<StdbConnection<DbConnection>>
+) {
     for event in events.read() {
-        info!("Registered player: {:?}", event);
+        let cloned_event = event.result.clone();
+        info!("Registered player: {:?} status: {:?}", cloned_event.name, cloned_event.event.status);
+
+        let players = stdb.db().player().count();
+        info!("Existing player count: {}", players);
     }
 }
 
 
-fn on_player(mut events: ReadInsertEvent<Player>) {
+fn on_player(mut events: ReadUpdateEvent<Player>) {
     for event in events.read() {
-        info!("Player inserted: {:?}", event.row);
+        let test = event.new.clone();
+        info!("Player inserted: {:?}", test);
     }
 }

@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  server:
+    build:
+      context: ./server
+    container_name: spacetime-server
+    ports:
+      - "3000:3000"  # Expose to host
+    networks:
+      - spacetime-net
+
+  client1:
+    build:
+      context: ./client
+    container_name: spacetime-client1
+    depends_on:
+      - server
+    networks:
+      - spacetime-net
+
+  client2:
+    build:
+      context: ./client
+    container_name: spacetime-client2
+    depends_on:
+      - server
+    networks:
+      - spacetime-net
+
+networks:
+  spacetime-net:
