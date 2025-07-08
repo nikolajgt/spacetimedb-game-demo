@@ -1,8 +1,12 @@
 
-db instance: 
+
+
+
+#### db info:
 - name: game-demo
-- spacetime call game-demo register_player "Player1"
-- spacetime sql game-demo "SELECT * FROM player"
+
+#### auth server:
+- sudo systemctl start postgresql
 
 #### server commands:
 - spacetime build
@@ -10,3 +14,7 @@ db instance:
 
 #### client commands:
 spacetime generate --lang rust --out-dir client/src/module_bindings --project-path server
+"SELECT * FROM character_movement WHERE character_id IN (
+SELECT character_id FROM identity_binding WHERE identity = CURRENT_IDENTITY()
+)
+"

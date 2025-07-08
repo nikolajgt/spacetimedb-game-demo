@@ -117,7 +117,7 @@ fn on_disconnect(
 ) {
     for event in events.read() {
         match stdb.disconnect() {
-            Ok(result) => {},
+            Ok(_) => {},
             Err(err) => {
                 log::warn!("{:?}", err);
             }
