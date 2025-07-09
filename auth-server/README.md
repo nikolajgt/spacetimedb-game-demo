@@ -1,7 +1,10 @@
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    username TEXT NOT NULL UNIQUE,
-    email TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+
+#### create user:
+curl -X POST http://localhost:3010/register \
+    -H "Content-Type: application/json" \
+    -d '{"email":"test@example.com", "password":"secret"}'
+
+#### authenticate:
+curl -X POST http://localhost:3010/authenticate  \
+    -H "Content-Type: application/json" \
+    -d '{"email":"test@example.com", "password":"Secret354252"}'
