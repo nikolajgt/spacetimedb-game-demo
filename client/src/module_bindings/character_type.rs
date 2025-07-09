@@ -8,12 +8,14 @@ use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
-pub struct Player {
-    pub id: __sdk::Identity,
-    pub name: Option<String>,
+pub struct Character {
+    pub character_id: u128,
+    pub user_id: u128,
+    pub name: String,
+    pub level: u32,
     pub online: bool,
 }
 
-impl __sdk::InModule for Player {
+impl __sdk::InModule for Character {
     type Module = super::RemoteModule;
 }

@@ -6,27 +6,39 @@
 #![allow(unused, clippy::all)]
 use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
+pub mod character_movement_state_type;
+pub mod character_movement_table;
+pub mod character_type;
+pub mod characters_table;
+pub mod create_character_reducer;
+pub mod identity_binding_type;
+pub mod identity_bindings_table;
 pub mod identity_connected_reducer;
 pub mod identity_disconnected_reducer;
-pub mod player_movement_state_type;
-pub mod player_movement_table;
-pub mod player_table;
-pub mod player_type;
-pub mod register_player_reducer;
+pub mod select_character_reducer;
+pub mod user_account_type;
+pub mod user_accounts_table;
 
+pub use character_movement_state_type::CharacterMovementState;
+pub use character_movement_table::*;
+pub use character_type::Character;
+pub use characters_table::*;
+pub use create_character_reducer::{
+    create_character, set_flags_for_create_character, CreateCharacterCallbackId,
+};
+pub use identity_binding_type::IdentityBinding;
+pub use identity_bindings_table::*;
 pub use identity_connected_reducer::{
     identity_connected, set_flags_for_identity_connected, IdentityConnectedCallbackId,
 };
 pub use identity_disconnected_reducer::{
     identity_disconnected, set_flags_for_identity_disconnected, IdentityDisconnectedCallbackId,
 };
-pub use player_movement_state_type::PlayerMovementState;
-pub use player_movement_table::*;
-pub use player_table::*;
-pub use player_type::Player;
-pub use register_player_reducer::{
-    register_player, set_flags_for_register_player, RegisterPlayerCallbackId,
+pub use select_character_reducer::{
+    select_character, set_flags_for_select_character, SelectCharacterCallbackId,
 };
+pub use user_account_type::UserAccount;
+pub use user_accounts_table::*;
 
 #[derive(Clone, PartialEq, Debug)]
 
@@ -36,9 +48,10 @@ pub use register_player_reducer::{
 /// to indicate which reducer caused the event.
 
 pub enum Reducer {
+    CreateCharacter { char_name: String },
     IdentityConnected,
     IdentityDisconnected,
-    RegisterPlayer { name: String },
+    SelectCharacter { character_id: u128 },
 }
 
 impl __sdk::InModule for Reducer {
@@ -48,9 +61,10 @@ impl __sdk::InModule for Reducer {
 impl __sdk::Reducer for Reducer {
     fn reducer_name(&self) -> &'static str {
         match self {
+            Reducer::CreateCharacter { .. } => "create_character",
             Reducer::IdentityConnected => "identity_connected",
             Reducer::IdentityDisconnected => "identity_disconnected",
-            Reducer::RegisterPlayer { .. } => "register_player",
+            Reducer::SelectCharacter { .. } => "select_character",
         }
     }
 }
@@ -58,6 +72,10 @@ impl TryFrom<__ws::ReducerCallInfo<__ws::BsatnFormat>> for Reducer {
     type Error = __sdk::Error;
     fn try_from(value: __ws::ReducerCallInfo<__ws::BsatnFormat>) -> __sdk::Result<Self> {
         match &value.reducer_name[..] {
+            "create_character" => Ok(__sdk::parse_reducer_args::<
+                create_character_reducer::CreateCharacterArgs,
+            >("create_character", &value.args)?
+            .into()),
             "identity_connected" => Ok(__sdk::parse_reducer_args::<
                 identity_connected_reducer::IdentityConnectedArgs,
             >("identity_connected", &value.args)?
@@ -66,9 +84,9 @@ impl TryFrom<__ws::ReducerCallInfo<__ws::BsatnFormat>> for Reducer {
                 identity_disconnected_reducer::IdentityDisconnectedArgs,
             >("identity_disconnected", &value.args)?
             .into()),
-            "register_player" => Ok(__sdk::parse_reducer_args::<
-                register_player_reducer::RegisterPlayerArgs,
-            >("register_player", &value.args)?
+            "select_character" => Ok(__sdk::parse_reducer_args::<
+                select_character_reducer::SelectCharacterArgs,
+            >("select_character", &value.args)?
             .into()),
             unknown => {
                 Err(
@@ -84,8 +102,10 @@ impl TryFrom<__ws::ReducerCallInfo<__ws::BsatnFormat>> for Reducer {
 #[allow(non_snake_case)]
 #[doc(hidden)]
 pub struct DbUpdate {
-    player: __sdk::TableUpdate<Player>,
-    player_movement: __sdk::TableUpdate<PlayerMovementState>,
+    character_movement: __sdk::TableUpdate<CharacterMovementState>,
+    characters: __sdk::TableUpdate<Character>,
+    identity_bindings: __sdk::TableUpdate<IdentityBinding>,
+    user_accounts: __sdk::TableUpdate<UserAccount>,
 }
 
 impl TryFrom<__ws::DatabaseUpdate<__ws::BsatnFormat>> for DbUpdate {
@@ -94,12 +114,18 @@ impl TryFrom<__ws::DatabaseUpdate<__ws::BsatnFormat>> for DbUpdate {
         let mut db_update = DbUpdate::default();
         for table_update in raw.tables {
             match &table_update.table_name[..] {
-                "player" => db_update
-                    .player
-                    .append(player_table::parse_table_update(table_update)?),
-                "player_movement" => db_update
-                    .player_movement
-                    .append(player_movement_table::parse_table_update(table_update)?),
+                "character_movement" => db_update
+                    .character_movement
+                    .append(character_movement_table::parse_table_update(table_update)?),
+                "characters" => db_update
+                    .characters
+                    .append(characters_table::parse_table_update(table_update)?),
+                "identity_bindings" => db_update
+                    .identity_bindings
+                    .append(identity_bindings_table::parse_table_update(table_update)?),
+                "user_accounts" => db_update
+                    .user_accounts
+                    .append(user_accounts_table::parse_table_update(table_update)?),
 
                 unknown => {
                     return Err(__sdk::InternalError::unknown_name(
@@ -126,12 +152,21 @@ impl __sdk::DbUpdate for DbUpdate {
     ) -> AppliedDiff<'_> {
         let mut diff = AppliedDiff::default();
 
-        diff.player = cache
-            .apply_diff_to_table::<Player>("player", &self.player)
+        diff.character_movement = cache
+            .apply_diff_to_table::<CharacterMovementState>(
+                "character_movement",
+                &self.character_movement,
+            )
             .with_updates_by_pk(|row| &row.id);
-        diff.player_movement = cache
-            .apply_diff_to_table::<PlayerMovementState>("player_movement", &self.player_movement)
-            .with_updates_by_pk(|row| &row.player_id);
+        diff.characters = cache
+            .apply_diff_to_table::<Character>("characters", &self.characters)
+            .with_updates_by_pk(|row| &row.character_id);
+        diff.identity_bindings = cache
+            .apply_diff_to_table::<IdentityBinding>("identity_bindings", &self.identity_bindings)
+            .with_updates_by_pk(|row| &row.identity);
+        diff.user_accounts = cache
+            .apply_diff_to_table::<UserAccount>("user_accounts", &self.user_accounts)
+            .with_updates_by_pk(|row| &row.id);
 
         diff
     }
@@ -141,8 +176,10 @@ impl __sdk::DbUpdate for DbUpdate {
 #[allow(non_snake_case)]
 #[doc(hidden)]
 pub struct AppliedDiff<'r> {
-    player: __sdk::TableAppliedDiff<'r, Player>,
-    player_movement: __sdk::TableAppliedDiff<'r, PlayerMovementState>,
+    character_movement: __sdk::TableAppliedDiff<'r, CharacterMovementState>,
+    characters: __sdk::TableAppliedDiff<'r, Character>,
+    identity_bindings: __sdk::TableAppliedDiff<'r, IdentityBinding>,
+    user_accounts: __sdk::TableAppliedDiff<'r, UserAccount>,
 }
 
 impl __sdk::InModule for AppliedDiff<'_> {
@@ -155,10 +192,20 @@ impl<'r> __sdk::AppliedDiff<'r> for AppliedDiff<'r> {
         event: &EventContext,
         callbacks: &mut __sdk::DbCallbacks<RemoteModule>,
     ) {
-        callbacks.invoke_table_row_callbacks::<Player>("player", &self.player, event);
-        callbacks.invoke_table_row_callbacks::<PlayerMovementState>(
-            "player_movement",
-            &self.player_movement,
+        callbacks.invoke_table_row_callbacks::<CharacterMovementState>(
+            "character_movement",
+            &self.character_movement,
+            event,
+        );
+        callbacks.invoke_table_row_callbacks::<Character>("characters", &self.characters, event);
+        callbacks.invoke_table_row_callbacks::<IdentityBinding>(
+            "identity_bindings",
+            &self.identity_bindings,
+            event,
+        );
+        callbacks.invoke_table_row_callbacks::<UserAccount>(
+            "user_accounts",
+            &self.user_accounts,
             event,
         );
     }
@@ -736,7 +783,9 @@ impl __sdk::SpacetimeModule for RemoteModule {
     type SubscriptionHandle = SubscriptionHandle;
 
     fn register_tables(client_cache: &mut __sdk::ClientCache<Self>) {
-        player_table::register_table(client_cache);
-        player_movement_table::register_table(client_cache);
+        character_movement_table::register_table(client_cache);
+        characters_table::register_table(client_cache);
+        identity_bindings_table::register_table(client_cache);
+        user_accounts_table::register_table(client_cache);
     }
 }

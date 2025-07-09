@@ -3,15 +3,14 @@ mod tools;
 mod db;
 mod routes;
 mod error;
+mod shared;
 
 use std::sync::Arc;
 use axum::{routing::post, Router};
-use axum::{response::IntoResponse};
-use serde::{Deserialize, Serialize};
-use argon2::{PasswordHasher, PasswordVerifier, };
-use sqlx::{Acquire, Pool, Postgres};
+use sqlx::{Pool, Postgres};
 use sqlx::postgres::PgPoolOptions;
 use crate::routes::authenticate::authenticate;
+use crate::routes::identity::identity;
 use crate::routes::register_user::register;
 use crate::routes::renew_tokens::renew;
 
@@ -27,6 +26,8 @@ pub struct AppState {
 
 #[tokio::main]
 async fn main() {
+    dotenv::dotenv().ok();
+    
     // initialize tracing
     tracing_subscriber::fmt::init();
     
@@ -48,6 +49,7 @@ async fn main() {
         .route("/register", post(register))
         .route("/authenticate", post(authenticate))
         .route("/renew", post(renew))
+        .route("/identity", post(identity))
         .with_state(app_state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3010").await.unwrap();

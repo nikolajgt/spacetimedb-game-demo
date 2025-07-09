@@ -7,9 +7,21 @@ pub struct TokenResponse {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Claims {
+pub struct UserClaims {
+    pub iss: String,
     pub sub: String,
+    pub iat: i64,
     pub email: String,
     pub is_premium: bool,
     pub exp: usize,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SpacetimeClaims {
+    pub sub: String,
+    pub iss: String,
+    pub aud: Vec<String>,
+    pub iat: usize,
+    pub exp: usize,
+    pub identity: String,
 }

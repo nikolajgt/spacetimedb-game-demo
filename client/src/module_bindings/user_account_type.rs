@@ -8,18 +8,12 @@ use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
-pub struct PlayerMovementState {
-    pub player_id: __sdk::Identity,
-    pub pos_x: f32,
-    pub pos_y: f32,
-    pub pos_z: f32,
-    pub dir_x: f32,
-    pub dir_y: f32,
-    pub dir_z: f32,
-    pub mode: u8,
-    pub direction: u8,
+pub struct UserAccount {
+    pub id: u128,
+    pub email: String,
+    pub password_hash: String,
 }
 
-impl __sdk::InModule for PlayerMovementState {
+impl __sdk::InModule for UserAccount {
     type Module = super::RemoteModule;
 }

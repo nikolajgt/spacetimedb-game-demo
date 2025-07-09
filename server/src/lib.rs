@@ -26,7 +26,7 @@ pub struct IdentityBinding {
 }
 
 
-#[table(name = character, public)]
+#[table(name = characters, public)]
 pub struct Character {
     #[primary_key]
     character_id: u128,
@@ -74,9 +74,9 @@ pub fn identity_connected(_ctx: &ReducerContext) {
 pub fn identity_disconnected(ctx: &ReducerContext) {
     let sender = ctx.sender.clone();
     if let Some(binding) = ctx.db().identity_bindings().identity().find(&sender) {
-        if let Some(mut character) = ctx.db().character().character_id().find(binding.user_id) {
+        if let Some(mut character) = ctx.db().characters().character_id().find(binding.user_id) {
             character.online = false;
-            ctx.db().character().user_id().update(character);
+            ctx.db().characters().user_id().update(character);
         }
 
         ctx.db().identity_bindings().identity().delete(sender);
@@ -110,11 +110,11 @@ pub fn identity_disconnected(ctx: &ReducerContext) {
 pub fn create_character(ctx: &ReducerContext, char_name: String) {
     let identity = ctx.db().identity_bindings().identity();
     if let Some(binding) = identity.find(ctx.sender.clone()) {
-        if ctx.db().character().name().find(char_name.clone()).is_some() {
+        if ctx.db().characters().name().find(char_name.clone()).is_some() {
             return;
         }
         let id = generate_id(ctx);
-        ctx.db().character().insert(Character {
+        ctx.db().characters().insert(Character {
             character_id: id.clone(),
             user_id: binding.user_id,
             name: char_name,
@@ -132,18 +132,18 @@ pub fn select_character(
     character_id: u128
 ) {
     if let Some(mut binding) = ctx.db().identity_bindings().identity().find(ctx.sender.clone()) {
-        if let Some(character) = ctx.db().character().character_id().find(binding.user_id) {
+        if let Some(character) = ctx.db().characters().character_id().find(binding.user_id) {
             if character.online {
                 warn!("Another character is already online for this account");
                 return;
             }
         }
-        if let Some(mut selected) = ctx.db().character().user_id().find(&character_id) {
+        if let Some(mut selected) = ctx.db().characters().user_id().find(&character_id) {
             info!("User {} selected character {}", &character_id, &selected.character_id);
             selected.online = true;
             binding.character_id = Some(character_id);
             ctx.db.identity_bindings().identity().update(binding);
-            ctx.db().character().user_id().update(selected);
+            ctx.db().characters().user_id().update(selected);
         }
     }
 }

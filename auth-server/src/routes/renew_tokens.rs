@@ -4,7 +4,7 @@ use axum::Json;
 use axum::response::IntoResponse;
 use crate::AppState;
 use crate::routes::authenticate::LoginRequest;
-use crate::routes::shared::TokenResponse;
+use crate::shared::TokenResponse;
 
 pub async fn renew(
     State(pool): State<Arc<AppState>>,
