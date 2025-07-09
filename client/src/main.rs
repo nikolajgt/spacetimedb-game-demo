@@ -5,7 +5,7 @@ use bevy::log::LogPlugin;
 use bevy::prelude::*;
 use bevy_spacetimedb::*;
 use clap::Parser;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use spacetimedb_sdk::{ReducerEvent, Table};
 use module_bindings::*;
 
@@ -15,9 +15,9 @@ pub struct RegisterPlayerEvent {
 }
 
 #[derive(Clone, Debug, Event)]
-pub struct OnRegisterPlayerEvent {
+pub struct OnSelectCharacterEvent {
     pub event: ReducerEvent<Reducer>,
-    pub name: String,
+    pub id: u128,
 }
 
 #[derive(Debug, Deserialize)]
@@ -34,7 +34,10 @@ struct Args {
     #[arg(long)]
     token: String,
 }
-
+#[derive(Serialize)]
+struct IdentityRequest {
+    token: String,
+}
 
 #[tokio::main]
 async fn main() {
@@ -50,8 +53,8 @@ async fn main() {
         .json::<IdentityResponse>()
         .await
         .expect("Failed to parse identity response");
-    
-    
+
+
     App::new()
         .add_plugins((MinimalPlugins, LogPlugin::default()))
         .add_plugins(
@@ -76,7 +79,7 @@ async fn main() {
                         })
                         .build()
                         .expect("SpacetimeDB connection failed");
-                    
+
                     info!("{:?}", &identity_res);
                     conn.run_threaded();
                     conn
@@ -88,16 +91,16 @@ async fn main() {
                     );
 
                     register_reducers!(
-                        // on_register_player(ctx, name) => OnRegisterPlayerEvent {
-                        //     event: ctx.event.clone(),
-                        //     name: name.clone()
-                        // }
+                        on_select_character(ctx, id) => OnSelectCharacterEvent {
+                            event: ctx.event.clone(),
+                            id: id.clone()
+                        }
                     );
                 }),
         )
         .add_systems(
             Update,
-            (on_connected, on_register_player, on_player, on_disconnect),
+            (on_connected, on_select_character, on_player, on_disconnect),
         )
         .run();
 }
@@ -112,25 +115,16 @@ fn on_connected(
         stdb.subscribe()
             .on_applied(|_| info!("Subscription to players applied"))
             .on_error(|_, err| error!("Subscription to players failed for: {}", err))
-            .subscribe("SELECT * FROM player");
-        
-        
-        let name = "Player54116".to_string();
-       // stdb.reducers().register_player(name.clone()).expect("TODO: panic message");
-        info!("Player {:?} trying to register", name);
+            .subscribe("SELECT * FROM user_accounts");
     }
 }
 
-fn on_register_player(
-    mut events: ReadReducerEvent<OnRegisterPlayerEvent>,
-    stdb: Res<StdbConnection<DbConnection>>
+fn on_select_character(
+    mut events: ReadReducerEvent<OnSelectCharacterEvent>
 ) {
     for event in events.read() {
         let cloned_event = event.result.clone();
-        info!("Registered player: {:?} status: {:?}", cloned_event.name, cloned_event.event.status);
-
-        let users = stdb.db().user_accounts().count();
-        info!("Existing player count: {}", users);
+        info!("Selected character: {:?} status: {:?}", &cloned_event.id, &cloned_event.event.status);
     }
 }
 

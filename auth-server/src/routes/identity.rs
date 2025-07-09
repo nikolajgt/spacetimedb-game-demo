@@ -1,39 +1,50 @@
 use std::sync::Arc;
 use anyhow::Context;
 use axum::extract::State;
+use axum::http::HeaderMap;
 use axum::Json;
 use axum::response::IntoResponse;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+use log::{error, info, trace};
 use serde::{Deserialize, Serialize};
-use crate::{AppState, SECRET_KEY};
+use crate::{AppState};
 use crate::error::AppError;
 use crate::shared::{SpacetimeClaims, UserClaims};
 use crate::tools::validate::validate_user_token;
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct IdentityRequest {
     token: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct IdentityResponse {
     token: String,
     identity: String,
 }
 
 pub async fn identity(
-    State(state): State<Arc<AppState>>,
-    Json(payload): Json<IdentityRequest>,
+    headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
-    let claims = match validate_user_token(&payload.token) {
+    info!("entry");
+    let auth_token = headers.get("authorization").expect("No authorization header").to_str()?;
+    let token = auth_token.strip_prefix("Bearer ")
+        .unwrap_or(auth_token); 
+    info!("token: {}", token);
+    let claims = match validate_user_token(token) {
         Ok(claims) => claims,
-        Err(err) => return Err(AppError(anyhow::anyhow!(err)))
+        Err(err) => {
+            error!("{}", err);
+            return Err(AppError(anyhow::anyhow!(err)));
+        }
     };
-
+    info!("derive_identity_from_claims");
     let identity = derive_identity_from_claims(&claims); // consistent per user
+    info!("derive_identity_from_claims");
     let token = issue_spacetimedb_token(&claims, identity.clone())?;
 
+    info!("Returning identity game token");
     Ok(Json(IdentityResponse {
         token,
         identity,
@@ -57,13 +68,13 @@ fn issue_spacetimedb_token(user_claims: &UserClaims, identity: String) -> Result
         identity,
     };
 
-
+    let secret = std::env::var("SECRET_KEY").expect("AUTH_SECRET not set");
     let token = encode(
         &Header::new(Algorithm::HS256),
         &claims,
-        &EncodingKey::from_secret(SECRET_KEY),
+        &EncodingKey::from_secret(secret.as_ref()),
     ).map_err(|e| AppError(anyhow::anyhow!("JWT encoding failed: {}", e)))?;
-    
+
     Ok(token)
 }
 

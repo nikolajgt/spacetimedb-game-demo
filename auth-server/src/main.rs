@@ -14,7 +14,6 @@ use crate::routes::identity::identity;
 use crate::routes::register_user::register;
 use crate::routes::renew_tokens::renew;
 
-const SECRET_KEY: &[u8] = b"super_secret_key_1234567890";
 
 
 

@@ -12,7 +12,7 @@ pub fn is_secure_password(password: &str) -> bool {
 }
 
 pub fn validate_user_token(token: &str) -> Result<UserClaims, String> {
-    let secret = std::env::var("AUTH_SECRET").expect("AUTH_SECRET not set");
+    let secret = std::env::var("SECRET_KEY").expect("SECRET_KEY not set");
 
     // Optional: validate iss, aud, etc.
     let mut validation = Validation::new(Algorithm::HS256);
@@ -33,7 +33,7 @@ pub fn validate_user_token(token: &str) -> Result<UserClaims, String> {
 }
 
 pub fn validate_spacetime_token(token: &str) -> Result<SpacetimeClaims, String> {
-    let secret = std::env::var("AUTH_SECRET").expect("AUTH_SECRET not set");
+    let secret = std::env::var("SECRET_KEY").expect("AUTH_SECRET not set");
 
     let mut validation = Validation::new(Algorithm::HS256);
     validation.validate_exp = true;

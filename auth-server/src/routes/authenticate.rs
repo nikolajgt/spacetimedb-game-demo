@@ -7,10 +7,11 @@ use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
 use sqlx::query_as;
-use crate::{AppState, SECRET_KEY};
+use crate::{AppState};
 use crate::db::schemas::User;
 use crate::error::AppError;
 use crate::shared::{UserClaims, TokenResponse};
+use crate::tools::password::verify_password;
 use crate::tools::validate::{is_secure_password, is_valid_email};
 
 #[derive(Serialize, Deserialize)]
@@ -25,7 +26,7 @@ pub async fn authenticate(
     Json(payload): Json<LoginRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     if !is_valid_email(&payload.email) || !is_secure_password(&payload.password) {
-        return Err(AppError(anyhow::anyhow!("Invalid credentials")));
+        return Err(AppError(anyhow::anyhow!("Invalid form of credentials")));
     }
 
     let user: User = query_as!(
@@ -40,6 +41,10 @@ pub async fn authenticate(
         .fetch_one(&state.db_pool)
         .await
         .context("User not found")?;
+    
+    if !verify_password(&payload.password, &user.password_hash) {
+        return Err(AppError(anyhow::anyhow!("Wrong password"))); // maybe a better error message
+    }
 
     // continue as normal
     let now = Utc::now().timestamp();
@@ -58,11 +63,11 @@ pub async fn authenticate(
         exp: expiration,
     };
 
-
+    let secret = std::env::var("SECRET_KEY").expect("AUTH_SECRET not set");
     let token = encode(
         &Header::new(Algorithm::HS256),
         &claims,
-        &EncodingKey::from_secret(SECRET_KEY),
+        &EncodingKey::from_secret(secret.as_bytes()),
     ).map_err(|e| AppError(anyhow::anyhow!("JWT encoding failed: {}", e)))?;
 
     Ok(Json(TokenResponse {
