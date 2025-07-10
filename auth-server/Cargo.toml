@@ -10,7 +10,6 @@ sqlx = { version = "0.8.6", features = ["runtime-tokio", "postgres", "macros", "
 chrono = { version = "0.4.41", features = ["serde"]}
 uuid = { version = "1.7", features = ["v4"] }
 
-
 argon2 = "0.5.3"
 jsonwebtoken = "9.3.1"
 serde = "1.0.219"
@@ -20,6 +19,10 @@ log = "0.4.27"
 anyhow = "1.0.98"
 dotenv = "0.15.0"
 hex = "0.4.3"
-sha256 = "1.6.0"
+rsa = "0.9.8"
+base64 = "0.22.1"
+serde_json = "1.0.140"
+tower-http = { version = "0.6.6", features = ["cors"] }
+sha2 = "0.10.9"
 
 

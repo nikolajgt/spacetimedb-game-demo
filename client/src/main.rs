@@ -53,8 +53,8 @@ async fn main() {
         .json::<IdentityResponse>()
         .await
         .expect("Failed to parse identity response");
-
-
+    
+    info!("IDENTITY: {}", identity_res.identity);
     App::new()
         .add_plugins((MinimalPlugins, LogPlugin::default()))
         .add_plugins(
@@ -80,7 +80,8 @@ async fn main() {
                         .build()
                         .expect("SpacetimeDB connection failed");
 
-                    info!("{:?}", &identity_res);
+                    info!("IDENTITY: {}", identity_res.identity);
+
                     conn.run_threaded();
                     conn
                 })

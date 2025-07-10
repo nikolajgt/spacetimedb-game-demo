@@ -2,17 +2,10 @@ use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
 use jsonwebtoken::errors::ErrorKind;
 use crate::shared::{SpacetimeClaims, UserClaims};
 
-pub fn is_valid_email(email: &str) -> bool {
-    email.contains('@') && email.contains('.')
-}
 
-
-pub fn is_secure_password(password: &str) -> bool {
-    password.len() >= 8 && password.chars().any(char::is_uppercase)
-}
 
 pub fn validate_user_token(token: &str) -> Result<UserClaims, String> {
-    let secret = std::env::var("SECRET_KEY").expect("SECRET_KEY not set");
+    let secret = std::env::var("USER_JWT_SECRET").expect("USER_JWT_SECRET not set");
 
     // Optional: validate iss, aud, etc.
     let mut validation = Validation::new(Algorithm::HS256);
@@ -33,7 +26,7 @@ pub fn validate_user_token(token: &str) -> Result<UserClaims, String> {
 }
 
 pub fn validate_spacetime_token(token: &str) -> Result<SpacetimeClaims, String> {
-    let secret = std::env::var("SECRET_KEY").expect("AUTH_SECRET not set");
+    let secret = std::env::var("STDB_JWT_SECRET").expect("STDB_JWT_SECRET not set");
 
     let mut validation = Validation::new(Algorithm::HS256);
     validation.validate_exp = true;

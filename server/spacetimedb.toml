@@ -1,0 +1,9 @@
+[server]
+module = "my-game"
+address = "0.0.0.0"
+port = 3000
+
+[jwt]
+issuer = "http://localhost:3010"
+audience = "spacetimedb"
+secret = "super_secret_key_1234567890"
