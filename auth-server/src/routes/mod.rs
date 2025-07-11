@@ -12,6 +12,7 @@ use crate::routes::stdb::jwks::jwks;
 use crate::routes::user::authenticate::authenticate;
 use crate::routes::user::register_user::register;
 use crate::routes::user::renew_tokens::renew;
+use crate::tools::jwk_builder::JwkSet;
 
 // user: allow all origins
 pub fn user_router(app_state: Arc<AppState>) -> Router {
@@ -29,7 +30,8 @@ pub fn user_router(app_state: Arc<AppState>) -> Router {
 }
 
 // stdb: allow only localhost
-pub fn stdb_router(app_state: Arc<AppState>) -> Router {
+pub fn stdb_router(app_state: Arc<AppState>
+) -> Router {
     // let cors = CorsLayer::new()
     //     .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
     //     .allow_methods([Method::GET, Method::POST])
@@ -39,7 +41,7 @@ pub fn stdb_router(app_state: Arc<AppState>) -> Router {
         .allow_origin(Any) // allow any origin
         .allow_methods([Method::GET, Method::POST])
         .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION]);
-
+    
     Router::new()
         .route("/identity", post(identity))
         .route("/.well-known/jwks.json", get(jwks))

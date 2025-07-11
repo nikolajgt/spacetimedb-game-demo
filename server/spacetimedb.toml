@@ -6,4 +6,4 @@ port = 3000
 [jwt]
 issuer = "http://localhost:3010"
 audience = "spacetimedb"
-secret = "super_secret_key_1234567890"
+jwks_url = "http://localhost:3010/.well-known/jwks.json"
