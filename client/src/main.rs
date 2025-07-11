@@ -43,7 +43,6 @@ struct IdentityRequest {
 async fn main() {
     let args = Args::parse();
     let jwt_token = args.token;
-
     let identity_res = reqwest::Client::new()
         .post("http://localhost:3010/identity")
         .bearer_auth(&jwt_token)
@@ -54,7 +53,8 @@ async fn main() {
         .await
         .expect("Failed to parse identity response");
     
-    info!("IDENTITY: {}", identity_res.identity);
+    println!("IDENTITY: {}", identity_res.identity);
+    println!("TOKEN: {}", identity_res.token);
     App::new()
         .add_plugins((MinimalPlugins, LogPlugin::default()))
         .add_plugins(

@@ -39,7 +39,7 @@ pub async fn identity(
             return Err(AppError(anyhow::anyhow!(err)));
         }
     };
-    let identity = derive_identity_from_claims(&claims); // consistent per user
+    let identity = derive_identity_from_claims(&claims);
     let token = issue_spacetimedb_token(&claims, identity.clone()).await?;
 
     info!("Returning identity game token");
@@ -73,22 +73,19 @@ pub async fn issue_spacetimedb_token(
         identity,
     };
 
-    // Load private key PEM
     let private_key_pem_path =
         std::env::var("STDB_CERT_PATH").expect("Missing STDB_CERT_PATH env var");
     let pem = fs::read_to_string(&private_key_pem_path).await?;
-    // Generate kid from PEM contents
     let kid = compute_kid(&pem).expect("compute kid failed");
-
+    info!("Keyid for spacetimedb token: {:?}", &kid);
     // Build JWT header
     let mut header = Header::new(Algorithm::RS256);
-    header.kid = Some(kid);
+    header.kid = Some("C8ZRZRC1HSfSMq-dSXLGveByrpMwYYORNgkds6Pmn9U".to_string());
 
     // Create encoding key from PEM
     let encoding_key = EncodingKey::from_rsa_pem(pem.as_bytes())
         .map_err(|e| AppError(anyhow::anyhow!("Failed to parse private key PEM: {}", e)))?;
     
-    info!("hit");
     let token = encode(&header, &claims, &encoding_key)
         .map_err(|e| {
             error!("JWT encoding failed: {:?}", e);
@@ -96,7 +93,6 @@ pub async fn issue_spacetimedb_token(
         })?;
 
     info!("Generated token with kid");
-
     Ok(token)
 }
 

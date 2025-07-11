@@ -33,7 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .expect("Failed to connect to Postgres");
 
     let cert_path = std::env::var("STDB_CERT_PATH").expect("Missing STDB_CERT_PATH env var");
-    let set_keys = JwkBuilder::from_pem_file(cert_path).await?;
+    let set_keys = JwkBuilder::build_jwk_from_private_pem(&cert_path).await?;
     let app_state = Arc::new(AppState {
         db_pool,
         set_keys
