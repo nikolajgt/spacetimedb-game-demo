@@ -70,7 +70,7 @@ pub async fn issue_spacetimedb_token(
         aud: vec![audience],
         iat: now as usize,
         exp: expiration,
-        hex_identity: identity,
+   //     hex_identity: identity,
     };
 
     let private_key_pem_path =
