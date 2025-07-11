@@ -1,11 +1,10 @@
+use anyhow::anyhow;
 use axum::http::HeaderMap;
 use axum::Json;
 use axum::response::IntoResponse;
-use base64::Engine;
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
-use log::{error, info, trace};
+use log::{error, info};
 use rsa::signature::digest::Digest;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
@@ -15,43 +14,40 @@ use crate::shared::{SpacetimeClaims, UserClaims};
 use crate::tools::jwk_builder::compute_kid;
 use crate::tools::validate::validate_user_token;
 
-#[derive(Serialize, Deserialize)]
-pub struct IdentityRequest {
-    token: String,
-}
 
 #[derive(Serialize, Deserialize)]
 pub struct IdentityResponse {
-    token: String,
-    identity: String,
+    token: String
 }
 
 pub async fn identity(
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
-    let auth_token = headers.get("authorization").expect("No authorization header").to_str()?;
+    let auth_token = headers
+        .get("authorization")
+        .ok_or_else(|| AppError(anyhow!("No authorization")))?
+        .to_str()
+        .map_err(|_| AppError(anyhow!("Invalid authorization")))?;
+    
     let token = auth_token.strip_prefix("Bearer ")
         .unwrap_or(auth_token);
     let claims = match validate_user_token(token) {
         Ok(claims) => claims,
         Err(err) => {
             error!("{}", err);
-            return Err(AppError(anyhow::anyhow!(err)));
+            return Err(AppError(anyhow!(err)));
         }
     };
-    let identity = derive_identity_from_claims(&claims); // consistent per user
-    let token = issue_spacetimedb_token(&claims, identity.clone()).await?;
+    let token = issue_spacetimedb_token(&claims).await?;
 
     info!("Returning identity game token");
     Ok(Json(IdentityResponse {
-        token,
-        identity,
+        token
     }))
 }
 // make SpacetimeClaims.aud: &'a [&'a str], you could avoid a heap allocation if you used:
 pub async fn issue_spacetimedb_token(
-    user_claims: &UserClaims,
-    identity: String,
+    user_claims: &UserClaims
 ) -> Result<String, AppError> {
     let now = Utc::now().timestamp();
     let expiration = Utc::now()
@@ -70,42 +66,27 @@ pub async fn issue_spacetimedb_token(
         aud: vec![audience],
         iat: now as usize,
         exp: expiration,
-        identity,
     };
 
-    // Load private key PEM
     let private_key_pem_path =
         std::env::var("STDB_CERT_PATH").expect("Missing STDB_CERT_PATH env var");
     let pem = fs::read_to_string(&private_key_pem_path).await?;
-    // Generate kid from PEM contents
     let kid = compute_kid(&pem).expect("compute kid failed");
-
+    info!("Keyid for spacetimedb token: {:?}", &kid);
     // Build JWT header
     let mut header = Header::new(Algorithm::RS256);
-    header.kid = Some(kid);
+    header.kid = Some("C8ZRZRC1HSfSMq-dSXLGveByrpMwYYORNgkds6Pmn9U".to_string());
 
     // Create encoding key from PEM
     let encoding_key = EncodingKey::from_rsa_pem(pem.as_bytes())
         .map_err(|e| AppError(anyhow::anyhow!("Failed to parse private key PEM: {}", e)))?;
     
-    info!("hit");
     let token = encode(&header, &claims, &encoding_key)
         .map_err(|e| {
             error!("JWT encoding failed: {:?}", e);
             AppError(anyhow::anyhow!("JWT encoding failed: {}", e))
         })?;
 
-    info!("Generated token with kid");
-
     Ok(token)
-}
-
-
-fn derive_identity_from_claims(claims: &UserClaims) -> String {
-    let input = claims.sub.as_bytes(); // typically the UUID or user ID
-    let mut hasher = Sha256::new();
-    hasher.update(input);
-    let hash = hasher.finalize();
-    hex::encode(hash)
 }
 

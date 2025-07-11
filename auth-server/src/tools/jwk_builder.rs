@@ -2,11 +2,12 @@ use std::path::Path;
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use jsonwebtoken::EncodingKey;
+use log::info;
 use openssl::pkey::PKey;
 use openssl::rsa::Rsa;
 use rsa::pkcs8::{DecodePrivateKey, DecodePublicKey, EncodePublicKey};
 use rsa::{RsaPrivateKey, RsaPublicKey};
-use rsa::pkcs1::{DecodeRsaPrivateKey, EncodeRsaPrivateKey};
+use rsa::pkcs1::{DecodeRsaPrivateKey, EncodeRsaPrivateKey, EncodeRsaPublicKey};
 use rsa::signature::digest::Digest;
 use rsa::traits::PublicKeyParts;
 use serde::Serialize;
@@ -54,6 +55,29 @@ impl JwkBuilder {
             }],
         })
     }
+
+    pub async fn build_jwk_from_private_pem(pem: &str) -> Result<JwkSet, Box<dyn std::error::Error>> {
+        let pem_reader = fs::read_to_string(pem).await?; 
+        let private_key = RsaPrivateKey::from_pkcs8_pem(&pem_reader)?;
+        let public_key = RsaPublicKey::from(&private_key); 
+        info!("public key: {:?}", public_key);
+        let der = private_key.to_pkcs1_der()?.as_bytes().to_vec(); 
+        let kid = compute_kid_from_der(&der);
+        info!("Key id: {:?}", kid);
+        let n = URL_SAFE_NO_PAD.encode(public_key.n().to_bytes_be());
+        let e = URL_SAFE_NO_PAD.encode(public_key.e().to_bytes_be());
+
+        Ok(JwkSet {
+            keys: vec![JwkKey {
+                kty: "RSA",
+                alg: "RS256",
+                use_: "sig",
+                kid,
+                n,
+                e,
+            }],
+        })
+    }
 }
 
 pub fn compute_kid_from_der(der: &[u8]) -> String {
@@ -61,10 +85,12 @@ pub fn compute_kid_from_der(der: &[u8]) -> String {
     URL_SAFE_NO_PAD.encode(&hash)
 }
 
+
+
 pub fn compute_kid(pem: &str) -> Result<String, Box<dyn std::error::Error>> {
-    let rsa = Rsa::public_key_from_pem(&pem.as_bytes())?;
-    let pkey = PKey::from_rsa(rsa)?;
-    let der = pkey.public_key_to_der()?; 
+    let private_key = RsaPrivateKey::from_pkcs8_pem(pem)?;
+    let public_key = RsaPublicKey::from(&private_key);
+    let der = public_key.to_pkcs1_der()?.as_bytes().to_vec();
     let hash = Sha256::digest(&der);
     Ok(URL_SAFE_NO_PAD.encode(&hash))
 }

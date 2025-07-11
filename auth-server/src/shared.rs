@@ -23,5 +23,5 @@ pub struct SpacetimeClaims {
     pub aud: Vec<String>,
     pub iat: usize,
     pub exp: usize,
-    pub identity: String,
+  //  pub hex_identity: String,
 }
