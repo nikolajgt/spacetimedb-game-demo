@@ -6,4 +6,13 @@ port = 3000
 [jwt]
 issuer = "http://localhost:3010"
 audience = "spacetimedb"
-jwks_url = "http://localhost:3010/.well-known/jwks.json"
+
+
+[auth]
+jwt_algorithm = "RS256"
+jwt_jwks_url = "http://localhost:3010/.well-known/jwks.json"
+
+
+
+[logging]
+level = "debug"

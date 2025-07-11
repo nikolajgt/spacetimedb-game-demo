@@ -1,11 +1,10 @@
+use anyhow::anyhow;
 use axum::http::HeaderMap;
 use axum::Json;
 use axum::response::IntoResponse;
-use base64::Engine;
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
-use log::{error, info, trace};
+use log::{error, info};
 use rsa::signature::digest::Digest;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
@@ -15,10 +14,6 @@ use crate::shared::{SpacetimeClaims, UserClaims};
 use crate::tools::jwk_builder::compute_kid;
 use crate::tools::validate::validate_user_token;
 
-#[derive(Serialize, Deserialize)]
-pub struct IdentityRequest {
-    token: String,
-}
 
 #[derive(Serialize, Deserialize)]
 pub struct IdentityResponse {
@@ -29,14 +24,19 @@ pub struct IdentityResponse {
 pub async fn identity(
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
-    let auth_token = headers.get("authorization").expect("No authorization header").to_str()?;
+    let auth_token = headers
+        .get("authorization")
+        .ok_or_else(|| AppError(anyhow!("No authorization")))?
+        .to_str()
+        .map_err(|_| AppError(anyhow!("Invalid authorization")))?;
+    
     let token = auth_token.strip_prefix("Bearer ")
         .unwrap_or(auth_token);
     let claims = match validate_user_token(token) {
         Ok(claims) => claims,
         Err(err) => {
             error!("{}", err);
-            return Err(AppError(anyhow::anyhow!(err)));
+            return Err(AppError(anyhow!(err)));
         }
     };
     let identity = derive_identity_from_claims(&claims);
@@ -70,7 +70,7 @@ pub async fn issue_spacetimedb_token(
         aud: vec![audience],
         iat: now as usize,
         exp: expiration,
-        identity,
+        hex_identity: identity,
     };
 
     let private_key_pem_path =
@@ -92,7 +92,6 @@ pub async fn issue_spacetimedb_token(
             AppError(anyhow::anyhow!("JWT encoding failed: {}", e))
         })?;
 
-    info!("Generated token with kid");
     Ok(token)
 }
 
