@@ -8,7 +8,7 @@ use axum::routing::{get, post};
 use tower_http::cors::{Any, CorsLayer};
 use crate::AppState;
 use crate::routes::stdb::identity::identity;
-use crate::routes::stdb::jwks::jwks;
+use crate::routes::stdb::jwks::{jwks, openid_config};
 use crate::routes::user::authenticate::authenticate;
 use crate::routes::user::register_user::register;
 use crate::routes::user::renew_tokens::renew;
@@ -38,6 +38,7 @@ pub fn stdb_router(app_state: Arc<AppState>
     
     Router::new()
         .route("/identity", post(identity))
+        .route("/.well-known/openid-configuration", get(openid_config))
         .route("/.well-known/jwks.json", get(jwks))
         .layer(cors)
         .with_state(app_state)
