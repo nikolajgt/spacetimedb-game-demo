@@ -17,8 +17,7 @@ use crate::tools::validate::validate_user_token;
 
 #[derive(Serialize, Deserialize)]
 pub struct IdentityResponse {
-    token: String,
-    identity: String,
+    token: String
 }
 
 pub async fn identity(
@@ -39,19 +38,16 @@ pub async fn identity(
             return Err(AppError(anyhow!(err)));
         }
     };
-    let identity = derive_identity_from_claims(&claims);
-    let token = issue_spacetimedb_token(&claims, identity.clone()).await?;
+    let token = issue_spacetimedb_token(&claims).await?;
 
     info!("Returning identity game token");
     Ok(Json(IdentityResponse {
-        token,
-        identity,
+        token
     }))
 }
 // make SpacetimeClaims.aud: &'a [&'a str], you could avoid a heap allocation if you used:
 pub async fn issue_spacetimedb_token(
-    user_claims: &UserClaims,
-    identity: String,
+    user_claims: &UserClaims
 ) -> Result<String, AppError> {
     let now = Utc::now().timestamp();
     let expiration = Utc::now()
@@ -70,7 +66,6 @@ pub async fn issue_spacetimedb_token(
         aud: vec![audience],
         iat: now as usize,
         exp: expiration,
-   //     hex_identity: identity,
     };
 
     let private_key_pem_path =
@@ -93,14 +88,5 @@ pub async fn issue_spacetimedb_token(
         })?;
 
     Ok(token)
-}
-
-
-fn derive_identity_from_claims(claims: &UserClaims) -> String {
-    let input = claims.sub.as_bytes(); // typically the UUID or user ID
-    let mut hasher = Sha256::new();
-    hasher.update(input);
-    let hash = hasher.finalize();
-    hex::encode(hash)
 }
 

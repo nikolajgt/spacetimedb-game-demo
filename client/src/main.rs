@@ -22,8 +22,7 @@ pub struct OnSelectCharacterEvent {
 
 #[derive(Debug, Deserialize)]
 pub struct IdentityResponse {
-    pub token: String,
-    pub identity: String,
+    pub token: String
 }
 
 
@@ -53,7 +52,6 @@ async fn main() {
         .await
         .expect("Failed to parse identity response");
     
-    println!("IDENTITY: {}", identity_res.identity);
     println!("TOKEN: {}", identity_res.token);
     App::new()
         .add_plugins((MinimalPlugins, LogPlugin::default()))
@@ -80,7 +78,6 @@ async fn main() {
                         .build()
                         .expect("SpacetimeDB connection failed");
 
-                    info!("IDENTITY: {}", identity_res.identity);
 
                     conn.run_threaded();
                     conn
@@ -112,7 +109,7 @@ fn on_connected(
     stdb: Res<StdbConnection<DbConnection>>,
 ) {
     for _ in events.read() {
-        info!("Connected to SpacetimeDB");
+        info!("Connected to SpacetimeDB with identity: {:?}", stdb.identity());
         stdb.subscribe()
             .on_applied(|_| info!("Subscription to players applied"))
             .on_error(|_, err| error!("Subscription to players failed for: {}", err))

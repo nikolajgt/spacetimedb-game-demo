@@ -4,4 +4,4 @@
 
 [workspace]
 resolver = "3"
-members = ["server", "client", "shared", "auth-server"]
+members = ["server", "client", "shared", "auth-server", "client-launcher"]
