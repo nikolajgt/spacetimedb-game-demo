@@ -2,65 +2,98 @@ use keyring::Entry;
 use serde::{Deserialize, Serialize};
 use crate::Screen;
 
+const SERVICE: &str = "ratatui-launcher";
+
+pub struct AuthenticationState {
+    refresh_token: Option<String>,
+    access_token: Option<String>,
+    auth_server_addr: String
+}
+
 #[derive(Serialize, Deserialize)]
-struct StoredTokens {
+struct TokenSet {
     access_token: String,
     refresh_token: String,
 }
 
-const SERVICE: &str = "ratatui-launcher";
 
-pub async fn attempt_auto_login() -> Screen {
-    match get_tokens() {
-        Ok(tokens) if validate_token(&tokens.access_token).await => Screen::Home,
-        Ok(tokens) => {
-            match refresh_token(&tokens.refresh_token).await {
-                Some(new_tokens) => {
-                    store_tokens(&new_tokens).ok();
-                    Screen::Home
+impl AuthenticationState {
+    
+    pub fn default() -> Self
+    {
+        let auth_server_addr = std::env::var("AUTH_SERVER_ADDR")
+            .expect("Environment variable AUTH_SERVER_ADDR is required.");
+        Self {
+            access_token: None,
+            refresh_token: None,
+            auth_server_addr
+        }
+    }
+    pub async fn attempt_auto_login(&mut self) -> Result<bool, String> {
+        let refresh_token = match get_local_refresh() {
+            Ok(t) => t,
+            Err(_) => return Ok(false),
+        };
+
+        match self.fetch_new_tokens(&refresh_token).await {
+            Ok(new_tokens) => {
+                if let Err(e) = store_local_refresh(&new_tokens.refresh_token) {
+                    eprintln!("Failed to update stored refresh token: {e}");
                 }
-                None => {
-                   // delete_tokens().ok();
-                    Screen::Login
-                }
+                
+                self.access_token = Some(new_tokens.access_token);
+                self.refresh_token = Some(new_tokens.refresh_token);
+
+                Ok(true)
+            }
+            Err(e) => {
+                eprintln!("Token validation failed: {e}");
+                Ok(false)
             }
         }
-        Err(_) => Screen::Login,
+    }
+
+    pub async fn validate_token(&self, access_token: &String) -> Result<(), String> {
+        let client = reqwest::Client::new();
+        let url = format!("{}/validate", self.auth_server_addr.trim_end_matches('/'));
+
+        match client.get(&url)
+            .bearer_auth(access_token)
+            .send()
+            .await
+        {
+            Ok(response) if response.status().is_success() => Ok(()),
+            Ok(response) => Err(format!("Token validation failed: HTTP {}", response.status())),
+            Err(e) => Err(format!("Request error while validating token: {e}")),
+        }
+    }
+
+    pub async fn fetch_new_tokens(&self, refresh_token: &String) -> Result<TokenSet, String> {
+        let client = reqwest::Client::new();
+        let url = format!("{}/refresh", self.auth_server_addr.trim_end_matches('/'));
+
+        let res = client
+            .post(&url)
+            .json(&serde_json::json!({ "refresh_token": refresh_token }))
+            .send()
+            .await
+            .map_err(|e| format!("Failed to send refresh request: {e}"))?;
+
+        if res.status().is_success() {
+            res.json::<TokenSet>()
+                .await
+                .map_err(|e| format!("Failed to deserialize refresh response: {e}"))
+        } else {
+            Err(format!("Refresh token failed with status: {}", res.status()))
+        }
     }
 }
-
-async fn validate_token(token: &str) -> bool {
-    let client = reqwest::Client::new();
-    let res = client
-        .get("http://localhost:3010/api/auth/validate")
-        .bearer_auth(token)
-        .send()
-        .await;
-
-    matches!(res, Ok(r) if r.status().is_success())
-}
-
-async fn refresh_token(refresh: &str) -> Option<StoredTokens> {
-    let client = reqwest::Client::new();
-    let res = client
-        .post("http://localhost:3010/api/auth/refresh")
-        .json(&serde_json::json!({ "refresh_token": refresh }))
-        .send()
-        .await
-        .ok()?;
-
-    res.json::<StoredTokens>().await.ok()
-}
-
-
-fn store_tokens(tokens: &StoredTokens) -> Result<(), Box<dyn std::error::Error>> {
-    let serialized = serde_json::to_string(tokens)?;
-    Entry::new(SERVICE, "auth")?.set_password(&serialized)?;
+fn store_local_refresh(refresh_token: &String) -> Result<(), Box<dyn std::error::Error>> {
+    Entry::new(SERVICE, "auth")?.set_password(&refresh_token)?;
     Ok(())
 }
 
-fn get_tokens() -> Result<StoredTokens, Box<dyn std::error::Error>> {
-    let val = Entry::new(SERVICE, "auth")?.get_password()?;
-    Ok(serde_json::from_str(&val)?)
+fn get_local_refresh() -> Result<String, Box<dyn std::error::Error>> {
+    let token = Entry::new(SERVICE, "auth")?.get_password()?;
+    Ok(token)
 }
-

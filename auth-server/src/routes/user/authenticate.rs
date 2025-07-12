@@ -1,6 +1,8 @@
+use std::net::SocketAddr;
 use std::sync::Arc;
-use anyhow::Context;
-use axum::extract::State;
+use anyhow::{anyhow, Context};
+use axum::extract::{ConnectInfo, State};
+use axum::http::HeaderMap;
 use axum::Json;
 use axum::response::IntoResponse;
 use chrono::{Duration, Utc};
@@ -10,7 +12,8 @@ use sqlx::query_as;
 use crate::{AppState};
 use crate::db::schemas::User;
 use crate::error::AppError;
-use crate::shared::{UserClaims, TokenResponse};
+use crate::routes::user::generate_tokens::{generate_access_token, generate_refresh_token};
+use crate::shared::{UserClaims, TokenResponse, RefreshClaims};
 use crate::tools::password::verify_password;
 
 #[derive(Serialize, Deserialize)]
@@ -21,6 +24,8 @@ pub struct LoginRequest {
 
 
 pub async fn authenticate(
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
     State(state): State<Arc<AppState>>,
     Json(payload): Json<LoginRequest>,
 ) -> Result<impl IntoResponse, AppError> {
@@ -36,40 +41,24 @@ pub async fn authenticate(
         .fetch_one(&state.db_pool)
         .await
         .context("User not found")?;
-    
+
     if !verify_password(&payload.password, &user.password_hash) {
-        return Err(AppError(anyhow::anyhow!("Wrong password"))); // maybe a better error message
+        return Err(AppError(anyhow::anyhow!("Wrong password")));
     }
 
-    // continue as normal
-    let now = Utc::now().timestamp();
-    let expiration = Utc::now()
-        .checked_add_signed(Duration::hours(24))
-        .unwrap()
-        .timestamp() as usize;
-    
-    let claims = UserClaims {
-        iss: std::env::var("USER_JWT_AUDIENCE")?,
-        sub: user.id.to_string(),
-        iat: now,
-        email: user.email.clone(),
-        is_premium: user.is_premium,
-        exp: expiration,
-    };
+    let user_agent = headers
+        .get("USER_AGENT")
+        .ok_or_else(|| AppError(anyhow!("No user agent")))?
+        .to_str()
+        .map_err(|_| AppError(anyhow!("Invalid user agent")))?;
 
-    let secret = std::env::var("USER_JWT_SECRET").expect("USER_JWT_SECRET not set");
-    let token = encode(
-        &Header::new(Algorithm::HS256),
-        &claims,
-        &EncodingKey::from_secret(secret.as_bytes()),
-    ).map_err(|e| AppError(anyhow::anyhow!("JWT encoding failed: {}", e)))?;
+    let access_token = generate_access_token(&user)?;
+    let refresh_token = generate_refresh_token(&state, &user.id.to_string(), &addr.ip().to_string(), user_agent).await?;
 
     Ok(Json(TokenResponse {
-        access_token: token,
-        refresh_token: "token".to_string(),
+        access_token,
+        refresh_token,
     }))
 }
-
-
 
 

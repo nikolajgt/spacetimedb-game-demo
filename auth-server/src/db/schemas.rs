@@ -16,8 +16,12 @@ pub struct User {
 #[derive(FromRow)]
 pub struct RefreshToken {
     pub id: Uuid,
+    pub user_id: Uuid,
     pub refresh_token: String,
+    pub ip_address: String,
+    pub user_agent: String,
     pub expires_at: chrono::DateTime<chrono::Utc>,
     pub created_at: chrono::DateTime<chrono::Utc>,
+    pub revoked_at: chrono::DateTime<chrono::Utc>
 }
 

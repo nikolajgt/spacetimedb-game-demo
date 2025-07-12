@@ -11,7 +11,7 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::layout::Constraint;
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Paragraph};
-use crate::security::attempt_auto_login;
+use crate::security::{AuthenticationState};
 
 #[derive(Debug, Parser)]
 struct Cli {
@@ -28,7 +28,8 @@ enum Screen {
 }
 
 struct AppState {
-    current_screen: Screen,
+    pub current_screen: Screen,
+    pub auth_state: AuthenticationState
 }
 
 struct App {
@@ -39,6 +40,7 @@ struct App {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    dotenv::dotenv().ok();
     color_eyre::install()?;
     let cli = Cli::parse();
     let tick_rate = Duration::from_millis(cli.tick_rate);
@@ -59,13 +61,25 @@ async fn main() -> Result<()> {
 impl App {
     async fn default() -> Self {
         Self {
-            state: AppState::default().await,
+            state: AppState::new(),
             tick_rate: Duration::from_millis(250),
-            uni_code: true
+            uni_code: true,
         }
     }
 
     async fn run(mut self, terminal: &mut DefaultTerminal) -> Result<()> {
+        match self.state.auth_state.attempt_auto_login().await {
+            Ok(authenticated) => if authenticated {
+                self.state.current_screen = Screen::Home;
+            } else {
+                self.state.current_screen = Screen::Login;
+            },
+            Err(e) => {
+                eprintln!("Auto-login error: {e}");
+                self.state.current_screen = Screen::Login;
+            }
+        }
+        
         loop {
             terminal.draw(|frame| self.render(frame))?;
 
@@ -131,16 +145,11 @@ impl App {
 }
 
 impl AppState {
-    fn new(screen: Screen) -> Self {
+    fn new() -> Self {
         Self {
-            current_screen: screen,
+            current_screen: Screen::Login,
+            auth_state: AuthenticationState::default()
         }
     }
     
-    async fn default() -> Self {
-        let screen = attempt_auto_login().await;
-        Self {
-            current_screen: screen,
-        }
-    }
 }

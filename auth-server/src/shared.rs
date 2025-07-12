@@ -16,6 +16,15 @@ pub struct UserClaims {
     pub exp: usize,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RefreshClaims {
+    pub sub: String,
+    pub ip: String,
+    pub exp: usize,
+    pub iat: i64,
+}
+
+
 #[derive(Serialize, Deserialize)]
 pub struct SpacetimeClaims {
     pub sub: String,

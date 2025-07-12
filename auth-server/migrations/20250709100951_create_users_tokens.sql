@@ -9,7 +9,11 @@ CREATE TABLE users (
 
 CREATE TABLE refresh_tokens (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    refresh_token TEXT NOT NULL,
+    user_id UUID NOT NULL REFERENCES users(id),
+    refresh_token TEXT NOT NULL UNIQUE,
+    ip_address TEXT,
+    user_agent TEXT,
+    expires_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    expires_at TIMESTAMPTZ NOT NULL
+    revoked_at TIMESTAMPTZ
 );
