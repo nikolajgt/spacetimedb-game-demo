@@ -1,4 +1,5 @@
 mod security;
+mod pages;
 
 use std::io::stdout;
 use std::time::Duration;
@@ -11,6 +12,8 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::layout::Constraint;
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Paragraph};
+use crate::pages::login_page::LoginPage;
+use crate::pages::register_page::RegisterPage;
 use crate::security::{AuthenticationState};
 
 #[derive(Debug, Parser)]
@@ -20,7 +23,9 @@ struct Cli {
 
 }
 
+#[derive(PartialOrd, PartialEq, Debug)]
 enum Screen {
+    Register,
     Login,
     Home,
     Loading,
@@ -29,13 +34,16 @@ enum Screen {
 
 struct AppState {
     pub current_screen: Screen,
-    pub auth_state: AuthenticationState
+    pub auth_state: AuthenticationState,
 }
 
 struct App {
     state: AppState,
     tick_rate: Duration,
     uni_code: bool,
+    login: LoginPage,
+    register: RegisterPage,
+    
 }
 
 #[tokio::main]
@@ -64,6 +72,8 @@ impl App {
             state: AppState::new(),
             tick_rate: Duration::from_millis(250),
             uni_code: true,
+            login: LoginPage::new(),
+            register: RegisterPage::new(),
         }
     }
 
@@ -85,18 +95,28 @@ impl App {
 
             if crossterm::event::poll(Duration::from_millis(100))? {
                 if let crossterm::event::Event::Key(key) = crossterm::event::read()? {
-                    match key.code {
-                        KeyCode::Char('q') => return Ok(()),
-                        KeyCode::Char('c') => {
-                                self.state.current_screen = match self.state.current_screen  {
-                                Screen::Login => Screen::Home,
-                                Screen::Home => Screen::Login,
-                                _ => Screen::Login
-                            };
+                    match self.state.current_screen {
+                        Screen::Login => {
+                            if let Some(new_screen) = self.login.handle_login_input(key) {
+                                println!("new screen: {:?}", new_screen);
+                                self.state.current_screen = new_screen;
+                            }
                         }
+                        Screen::Register => {
+                            if let Some(new_screen) = self.register.handle_register_input(key).await {
+                                println!("new screen: {:?}", new_screen);
+                                self.state.current_screen = new_screen;
+                            }
+                        }
+                        // Screen::Home => {
+                        //     if let Some(new_screen) = self.handle_home_input(key) {
+                        //         self.state.current_screen = new_screen;
+                        //     }
+                        // }
                         _ => {}
                     }
                 }
+               
             }
         }
     }
@@ -105,10 +125,14 @@ impl App {
         match self.state.current_screen {
             Screen::Login => self.render_login(frame),
             Screen::Home => self.render_home(frame),
+            Screen::Register => self.render_register(frame),
             _ => {}
         }
     }
-    
+
+
+
+
     fn render_home(&self, frame: &mut Frame) {
         let layout = Layout::default()
             .direction(Direction::Vertical)
@@ -142,6 +166,23 @@ impl App {
 
         frame.render_widget(title, layout[0]);
     }
+    
+    fn render_register(&self, frame: &mut Frame) {
+        let layout = Layout::default()
+            .direction(Direction::Vertical)
+            .margin(2)
+            .constraints([
+                Constraint::Length(3),
+                Constraint::Min(1),
+            ])
+            .split(frame.area());
+
+        let title = Paragraph::new("🛂 Register Screen")
+            .block(Block::default().title("Welcome").borders(Borders::ALL))
+            .centered();
+
+        frame.render_widget(title, layout[0]);
+    }
 }
 
 impl AppState {
@@ -151,5 +192,14 @@ impl AppState {
             auth_state: AuthenticationState::default()
         }
     }
-    
+}
+
+impl Screen {
+    fn is_authenticated(&self) -> bool {
+        matches!(self, Screen::Home)
+    }
+
+    fn is_public(&self) -> bool {
+        matches!(self, Screen::Login | Screen::Register)
+    }
 }

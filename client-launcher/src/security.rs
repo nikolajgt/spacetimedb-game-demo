@@ -1,19 +1,18 @@
 use keyring::Entry;
 use serde::{Deserialize, Serialize};
-use crate::Screen;
 
 const SERVICE: &str = "ratatui-launcher";
 
 pub struct AuthenticationState {
-    refresh_token: Option<String>,
-    access_token: Option<String>,
+    pub refresh_token: Option<String>,
+    pub access_token: Option<String>,
     auth_server_addr: String
 }
 
 #[derive(Serialize, Deserialize)]
-struct TokenSet {
-    access_token: String,
-    refresh_token: String,
+pub struct TokenSet {
+    pub access_token: String,
+    pub refresh_token: String,
 }
 
 
@@ -70,7 +69,7 @@ impl AuthenticationState {
 
     pub async fn fetch_new_tokens(&self, refresh_token: &String) -> Result<TokenSet, String> {
         let client = reqwest::Client::new();
-        let url = format!("{}/refresh", self.auth_server_addr.trim_end_matches('/'));
+        let url = format!("{}/renew", self.auth_server_addr.trim_end_matches('/'));
 
         let res = client
             .post(&url)

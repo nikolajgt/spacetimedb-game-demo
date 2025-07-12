@@ -21,9 +21,9 @@ pub fn user_router(app_state: Arc<AppState>) -> Router {
         .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION]);
 
     Router::new()
-        .route("/register", post(register))
-        .route("/authenticate", post(authenticate))
-        .route("/renew", post(renew))
+        .route("/api/register", post(register))
+        .route("/api/authenticate", post(authenticate))
+        .route("/api/renew", post(renew))
         .layer(cors)
         .with_state(app_state)
 }
