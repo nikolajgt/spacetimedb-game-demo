@@ -23,4 +23,4 @@ spacetime generate --lang rust --out-dir client/src/module_bindings --project-pa
 "SELECT * FROM character_movement WHERE character_id IN (
 SELECT character_id FROM identity_binding WHERE identity = CURRENT_IDENTITY()
 )
-"
+"eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6...

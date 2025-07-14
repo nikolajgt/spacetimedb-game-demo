@@ -2,11 +2,12 @@
 
 
 #### create user:
-curl -X POST http://localhost:3010/register \
+curl -X POST http://localhost:3010/api/register \
     -H "Content-Type: application/json" \
-    -d '{"email":"test@example.com", "password":"secret"}'
+    -d '{"email":"foo@example.com", "password":"Password0"}'
 
 #### authenticate:
-curl -X POST http://localhost:3010/authenticate  \
+curl -X POST http://localhost:3010/api/authenticate \
     -H "Content-Type: application/json" \
-    -d '{"email":"test@example.com", "password":"Secret354252"}'
+    -H "User-Agent: tui-launcher/1.0" \
+    -d '{"email":"foo@example.com", "password":"Password0"}'

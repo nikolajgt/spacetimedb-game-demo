@@ -41,7 +41,7 @@ pub async fn generate_refresh_token(
 ) -> Result<String, AppError> {
     let now = Utc::now().timestamp();
     let refresh_exp = Utc::now()
-        .checked_add_signed(Duration::days(7)) // Consider using days for real use
+        .checked_add_signed(Duration::days(7))
         .unwrap()
         .timestamp();
 
@@ -50,9 +50,10 @@ pub async fn generate_refresh_token(
         ip: ip.to_string(),
         iat: now,
         exp: refresh_exp as usize,
+        user_agent: user_agent.to_string(),
     };
 
-    let refresh_secret = std::env::var("REFRESH_JWT_SECRET")
+    let refresh_secret = std::env::var("USER_JWT_REFRESH_SECRET")
         .expect("REFRESH_JWT_SECRET not set");
 
     let refresh_token = encode(

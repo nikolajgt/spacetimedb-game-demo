@@ -52,7 +52,7 @@ impl AuthenticationState {
         }
     }
 
-    pub async fn validate_token(&self, access_token: &String) -> Result<(), String> {
+    async fn validate_token(&self, access_token: &String) -> Result<(), String> {
         let client = reqwest::Client::new();
         let url = format!("{}/validate", self.auth_server_addr.trim_end_matches('/'));
 
@@ -67,7 +67,7 @@ impl AuthenticationState {
         }
     }
 
-    pub async fn fetch_new_tokens(&self, refresh_token: &String) -> Result<TokenSet, String> {
+    async fn fetch_new_tokens(&self, refresh_token: &String) -> Result<TokenSet, String> {
         let client = reqwest::Client::new();
         let url = format!("{}/renew", self.auth_server_addr.trim_end_matches('/'));
 
@@ -84,6 +84,29 @@ impl AuthenticationState {
                 .map_err(|e| format!("Failed to deserialize refresh response: {e}"))
         } else {
             Err(format!("Refresh token failed with status: {}", res.status()))
+        }
+    }
+
+    pub async fn with_token_retry<T, F, Fut>(&mut self, action: F) -> Result<T, String>
+    where
+        F: FnOnce(&str) -> Fut,
+        Fut: Future<Output = Result<T, String>>,
+    {
+        let token = match &self.access_token {
+            Some(t) => t.clone(),
+            None => return Err("No access token available".to_string()),
+        };
+
+        // need to add retry
+        match action(&token).await {
+            Ok(result) => Ok(result),
+            Err(e) if e.contains("401") || e.contains("expired") => {
+                eprintln!("Token expired or unauthorized: {e}, refreshing...");
+                let refresh_token = self.refresh_token.as_ref().unwrap();
+                self.fetch_new_tokens(&refresh_token).await?;
+                Err(e.to_string())
+            }
+            Err(e) => return Err(e),
         }
     }
 }

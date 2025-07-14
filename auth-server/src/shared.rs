@@ -22,6 +22,7 @@ pub struct RefreshClaims {
     pub ip: String,
     pub exp: usize,
     pub iat: i64,
+    pub user_agent: String,
 }
 
 

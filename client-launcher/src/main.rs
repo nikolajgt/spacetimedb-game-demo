@@ -12,15 +12,15 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::layout::Constraint;
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Paragraph};
-use crate::pages::login_page::LoginPage;
+use tokio::sync::mpsc::Sender;
+use crate::pages::login_page::LoginInput;
 use crate::pages::register_page::RegisterPage;
 use crate::security::{AuthenticationState};
 
 #[derive(Debug, Parser)]
-struct Cli {
+struct Args {
     #[arg(short, long, default_value_t = 250)]
     tick_rate: u64,
-
 }
 
 #[derive(PartialOrd, PartialEq, Debug)]
@@ -32,25 +32,36 @@ enum Screen {
     Error(String),
 }
 
+enum AppCommand {
+    ToPage(Screen),
+    Logout,
+    Quit,
+}
+
 struct AppState {
     pub current_screen: Screen,
     pub auth_state: AuthenticationState,
+}
+
+
+pub struct AppContext<'a> {
+    pub auth: &'a mut AuthenticationState,
+    pub tx: Sender<AppCommand>, 
 }
 
 struct App {
     state: AppState,
     tick_rate: Duration,
     uni_code: bool,
-    login: LoginPage,
+    login: LoginInput,
     register: RegisterPage,
-    
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv::dotenv().ok();
     color_eyre::install()?;
-    let cli = Cli::parse();
+    let cli = Args::parse();
     let tick_rate = Duration::from_millis(cli.tick_rate);
     let stdout = stdout();
     enable_raw_mode()?;
@@ -72,7 +83,7 @@ impl App {
             state: AppState::new(),
             tick_rate: Duration::from_millis(250),
             uni_code: true,
-            login: LoginPage::new(),
+            login: LoginInput::new(),
             register: RegisterPage::new(),
         }
     }

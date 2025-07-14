@@ -2,11 +2,9 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use anyhow::{anyhow, Context};
 use axum::extract::{ConnectInfo, State};
-use axum::http::HeaderMap;
+use axum::http::{header, HeaderMap};
 use axum::Json;
 use axum::response::IntoResponse;
-use chrono::{Duration, Utc};
-use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
 use sqlx::query_as;
 use crate::{AppState};
@@ -47,7 +45,7 @@ pub async fn authenticate(
     }
 
     let user_agent = headers
-        .get("USER_AGENT")
+        .get(header::USER_AGENT)
         .ok_or_else(|| AppError(anyhow!("No user agent")))?
         .to_str()
         .map_err(|_| AppError(anyhow!("Invalid user agent")))?;

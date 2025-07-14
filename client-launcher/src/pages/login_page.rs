@@ -6,12 +6,14 @@ use crate::Screen;
 
 
 pub struct LoginPage2 {
-    pub password: String,
-    pub focused_field: FieldFocus,
+    pub input: LoginInput,
+    pub auth_server_addr: String,
 }
 
 
-pub struct LoginPage {
+
+
+pub struct LoginInput {
     pub email: String,
     pub password: String,
     pub focused_field: FieldFocus,
@@ -23,7 +25,7 @@ pub enum FieldFocus {
     Password,
 }
 
-impl LoginPage {
+impl LoginInput {
     pub fn new() -> Self {
         Self {
             email: String::new(),
