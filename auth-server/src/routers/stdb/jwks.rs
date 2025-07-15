@@ -4,11 +4,11 @@ use axum::Json;
 use axum::response::IntoResponse;
 use log::info;
 use serde::{Deserialize, Serialize};
-use crate::AppState;
+use crate::routers::stdb::StdbAppState;
 
-pub async fn jwks(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    info!("SPACETIME CALLED FOR JWKS");
-    Json(state.set_keys.clone())
+pub async fn jwks(State(state): State<Arc<StdbAppState>>) -> impl IntoResponse {
+    info!("hit");
+    Json(state.character_token_handler.jwk.clone())
 }
 
 #[derive(Serialize, Deserialize)]
@@ -24,3 +24,4 @@ pub async fn openid_config() -> impl IntoResponse {
     })
 
 }
+

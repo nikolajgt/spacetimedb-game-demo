@@ -1,1 +1,2 @@
-pub mod schemas;
+pub mod character;
+pub mod user;

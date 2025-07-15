@@ -12,7 +12,7 @@ use spacetimedb::rand::Rng;
 
 #[reducer(init)]
 pub fn init(_ctx: &ReducerContext) -> Result<(), String>{
-    let loop_duration: TimeDuration = TimeDuration::from_micros(10_000_000);
+    let loop_duration: TimeDuration = TimeDuration::from_micros(50_000);
     _ctx.db.tick_schedule().insert(TickSchedule {
         scheduled_id: 0,
         scheduled_at: loop_duration.into()
@@ -32,7 +32,7 @@ pub fn identity_disconnected(ctx: &ReducerContext) {
 }
 
 
-#[table(name = tick_schedule, scheduled(tick))]
+#[table(name = tick_schedule, scheduled(schedule_tick))]
 pub struct TickSchedule {
     #[primary_key]
     #[auto_inc]
@@ -40,16 +40,12 @@ pub struct TickSchedule {
     scheduled_at: ScheduleAt,
 }
 #[reducer]
-pub fn tick(ctx: &ReducerContext, args: TickSchedule) {
+pub fn schedule_tick(ctx: &ReducerContext, args: TickSchedule) {
     info!("Tick hit");
 }
 
 
-#[reducer]
-pub fn schedule_tick(ctx: &ReducerContext) {
-    info!("Schedule tick hit");
-}
-
+// should not store offline data
 #[table(name = characters)]
 pub struct Character {
     #[primary_key]
@@ -64,6 +60,7 @@ pub struct Character {
     pub online: bool,
 }
 
+// should not store offline data
 #[table(name = character_movement)]
 pub struct CharacterMovement {
     #[primary_key]
@@ -81,15 +78,8 @@ pub struct CharacterMovement {
 }
 
 
-#[table(name = session_characters, public)]
-pub struct SessionCharacter {
-    #[primary_key]
-    pub identity: Identity,
-    pub character_id: u128,
-}
-
-#[table(name = session_character_movement, public)]
-pub struct SessionCharacterMovement {
+#[table(name = character_movement_commands, public)]
+pub struct CharacterMovementCommands {
     #[primary_key]
     pub identity: Identity,
     #[unique]
@@ -111,6 +101,7 @@ pub struct SessionCharacterMovement {
 pub fn create_character(ctx: &ReducerContext, char_name: String) {
     let identity = ctx.sender;
     if ctx.db().characters().name().find(char_name.clone()).is_some() {
+        info!("Character already exist");
         return;
     }
 

@@ -6,7 +6,7 @@ use axum::response::IntoResponse;
 use serde::Deserialize;
 use sqlx::{query, query_scalar};
 use uuid::Uuid;
-use crate::AppState;
+use crate::routers::user::AppState;
 use crate::tools::password::hash_password;
 
 #[derive(Deserialize)]
@@ -36,8 +36,8 @@ pub async fn register(
             "#,
             payload.email
         )
-        .fetch_one(&state.db_pool) // ✅ This is simpler and avoids `conn`
-        .await.map_err(|err| {
+        .fetch_one(state.db_pool.as_ref()) // ✅ This is simpler and avoids `conn`
+        .await.map_err(|_| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
         )}).unwrap().unwrap();
@@ -58,7 +58,7 @@ pub async fn register(
         &payload.email,
         &password_hash
         )
-        .execute(&state.db_pool)
+        .execute(state.db_pool.as_ref())
         .await
         .map_err(|err| {
             (

@@ -1,11 +1,10 @@
-use axum::http::StatusCode;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use sqlx::query;
 use uuid::Uuid;
-use crate::AppState;
-use crate::db::schemas::User;
+use crate::db::user::User;
 use crate::error::AppError;
+use crate::routers::user::AppState;
 use crate::shared::{RefreshClaims, UserClaims};
 
 pub fn generate_access_token(user: &User) -> Result<String, AppError> {
@@ -82,7 +81,7 @@ pub async fn generate_refresh_token(
         user_agent,
         refresh_exp,
         )
-        .execute(&app_state.db_pool)
+        .execute(app_state.db_pool.as_ref())
         .await
         .map_err(|err| {
             AppError(anyhow::anyhow!("Insert error: {}", err))

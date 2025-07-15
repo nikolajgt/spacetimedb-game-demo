@@ -1,22 +1,16 @@
 mod user;
 mod tools;
 mod db;
-mod routes;
+mod routers;
 mod error;
 mod shared;
 
 use std::net::SocketAddr;
 use std::sync::Arc;
-use axum::{routing::post, Router};
+use axum::Router;
 use sqlx::{Pool, Postgres};
 use sqlx::postgres::PgPoolOptions;
-use crate::tools::jwk_builder::{JwkBuilder, JwkSet};
 
-#[derive(Clone)]
-pub struct AppState {
-    db_pool: Pool<Postgres>,
-    set_keys: JwkSet,
-}
 
 
 
@@ -34,16 +28,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await
         .expect("Failed to connect to Postgres");
 
-    let cert_path = std::env::var("STDB_CERT_PATH").expect("Missing STDB_CERT_PATH env var");
-    let set_keys = JwkBuilder::build_jwk_from_private_pem(&cert_path).await?;
-    let app_state = Arc::new(AppState {
-        db_pool,
-        set_keys
-    });
+    let db_pool = Arc::new(db_pool);
     
     let app = Router::new()
-        .merge(routes::user_router(app_state.clone()))
-        .merge(routes::stdb_router(app_state.clone()))
+        .merge(routers::user::user_router(db_pool.clone()))
+        .merge(routers::stdb::stdb_router(db_pool.clone()))
         .into_make_service_with_connect_info::<SocketAddr>();
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3010").await.expect("Failed to create JWK");

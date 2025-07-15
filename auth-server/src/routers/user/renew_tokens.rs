@@ -2,18 +2,17 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use anyhow::{anyhow, Context};
 use axum::extract::{ConnectInfo, State};
-use axum::http::{HeaderMap, StatusCode};
+use axum::http::{HeaderMap};
 use axum::Json;
 use axum::response::IntoResponse;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
-use sqlx::{query, query_as};
+use sqlx::{query_as};
 use uuid::Uuid;
-use crate::AppState;
-use crate::db::schemas::User;
+use crate::db::user::User;
 use crate::error::AppError;
-use crate::routes::user::authenticate::LoginRequest;
-use crate::routes::user::generate_tokens::{generate_access_token, generate_refresh_token};
+use crate::routers::user::AppState;
+use crate::routers::user::generate_tokens::{generate_access_token, generate_refresh_token};
 use crate::shared::{RefreshClaims, TokenResponse};
 
 #[derive(Serialize, Deserialize)]
@@ -56,7 +55,7 @@ pub async fn renew(
             "#,
             &user_id
         )
-        .fetch_one(&state.db_pool)
+        .fetch_one(state.db_pool.as_ref())
         .await
         .context("User not found")?;
 

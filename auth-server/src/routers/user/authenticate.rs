@@ -7,11 +7,11 @@ use axum::Json;
 use axum::response::IntoResponse;
 use serde::{Deserialize, Serialize};
 use sqlx::query_as;
-use crate::{AppState};
-use crate::db::schemas::User;
+use crate::db::user::User;
 use crate::error::AppError;
-use crate::routes::user::generate_tokens::{generate_access_token, generate_refresh_token};
-use crate::shared::{UserClaims, TokenResponse, RefreshClaims};
+use crate::routers::user::AppState;
+use crate::routers::user::generate_tokens::{generate_access_token, generate_refresh_token};
+use crate::shared::TokenResponse;
 use crate::tools::password::verify_password;
 
 #[derive(Serialize, Deserialize)]
@@ -36,7 +36,7 @@ pub async fn authenticate(
             "#,
             &payload.email
         )
-        .fetch_one(&state.db_pool)
+        .fetch_one(state.db_pool.as_ref())
         .await
         .context("User not found")?;
 

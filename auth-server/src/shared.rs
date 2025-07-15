@@ -27,11 +27,11 @@ pub struct RefreshClaims {
 
 
 #[derive(Serialize, Deserialize)]
-pub struct SpacetimeClaims {
+pub struct CharacterClaims {
     pub sub: String,
     pub iss: String,
     pub aud: Vec<String>,
     pub iat: usize,
     pub exp: usize,
-  //  pub hex_identity: String,
+    pub char_id: String
 }
