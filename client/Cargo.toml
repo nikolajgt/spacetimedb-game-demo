@@ -4,10 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bevy = "0.16.1"
+bevy = { version = "0.16", features = ["wayland"] }
+avian3d = { version = "0.3.0", default-features = false, features = ["diagnostic_ui", "f64", "parry-f64", "3d", "default-collider", "collider-from-mesh"] }
+
 bevy_spacetimedb = "0.6.0"
 clap = { version = "4.5.40", features = ["derive"] }
 spacetimedb-sdk = "1.2.0"
 reqwest = { version = "0.12.22", features = ["json"] }
 tokio = "1.46.1"
 serde = "1.0.219"
+bevy_asset_loader = "0.23.0"

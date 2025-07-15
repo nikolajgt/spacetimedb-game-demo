@@ -72,7 +72,7 @@ pub async fn issue_spacetimedb_token(
         std::env::var("STDB_CERT_PATH").expect("Missing STDB_CERT_PATH env var");
     let pem = fs::read_to_string(&private_key_pem_path).await?;
     let kid = compute_kid(&pem).expect("compute kid failed");
-    info!("Keyid for spacetimedb token: {:?}", &kid);
+    info!("Keyid for stdb token: {:?}", &kid);
     // Build JWT header
     let mut header = Header::new(Algorithm::RS256);
     header.kid = Some("C8ZRZRC1HSfSMq-dSXLGveByrpMwYYORNgkds6Pmn9U".to_string());
