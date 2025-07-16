@@ -33,5 +33,6 @@ pub struct CharacterClaims {
     pub aud: Vec<String>,
     pub iat: usize,
     pub exp: usize,
-    pub char_id: String
+    pub character_id: String,
+    pub is_premium: bool,
 }

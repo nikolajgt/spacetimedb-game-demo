@@ -4,11 +4,7 @@ use argon2::{Argon2, Params, PasswordHash, PasswordHasher, PasswordVerifier, Ver
 use log::{info, warn};
 use spacetimedb::*;
 use spacetimedb::rand::Rng;
-
-
-
-
-
+use spacetimedb::sys::raw::identity;
 
 #[reducer(init)]
 pub fn init(_ctx: &ReducerContext) -> Result<(), String>{
@@ -28,7 +24,7 @@ pub fn identity_connected(_ctx: &ReducerContext) {
 
 #[reducer(client_disconnected)]
 pub fn identity_disconnected(ctx: &ReducerContext) {
-    move_session_to_persistence(ctx);
+    // should flush data 
 }
 
 
@@ -41,12 +37,12 @@ pub struct TickSchedule {
 }
 #[reducer]
 pub fn schedule_tick(ctx: &ReducerContext, args: TickSchedule) {
-    info!("Tick hit");
+    process_movement_commands(ctx)    
 }
 
 
 // should not store offline data
-#[table(name = characters)]
+#[table(name = characters, public)]
 pub struct Character {
     #[primary_key]
     pub character_id: u128,
@@ -57,31 +53,14 @@ pub struct Character {
     #[unique]
     pub name: String,
     pub level: u32,
-    pub online: bool,
 }
 
 // should not store offline data
 #[table(name = character_movement)]
 pub struct CharacterMovement {
     #[primary_key]
-    pub character_id: u128,
-
-    pub pos_x: f32,
-    pub pos_y: f32,
-    pub pos_z: f32,
-
-    pub dir_x: f32,
-    pub dir_y: f32,
-    pub dir_z: f32,
-
-    pub mode: u8,
-}
-
-
-#[table(name = character_movement_commands, public)]
-pub struct CharacterMovementCommands {
-    #[primary_key]
     pub identity: Identity,
+
     #[unique]
     pub character_id: u128,
 
@@ -97,133 +76,86 @@ pub struct CharacterMovementCommands {
 }
 
 
-#[reducer]
-pub fn create_character(ctx: &ReducerContext, char_name: String) {
-    let identity = ctx.sender;
-    if ctx.db().characters().name().find(char_name.clone()).is_some() {
-        info!("Character already exist");
-        return;
-    }
+#[table(name = character_movement_commands)]
+pub struct CharacterMovementCommands {
+    #[primary_key]
+    #[auto_inc]
+    pub id:  u128,
 
-    let id = generate_id(ctx);
-    let char = Character {
-        character_id: id.clone(),
-        identity: identity,
-        name: char_name,
-        level: 1,
-        online: true,
-    };
+    pub identity: Identity,
+    #[unique]
+    pub character_id: u128,
 
-    info!("Identity {} created {} ", identity, char.name);
-    ctx.db().characters().insert(char);
+    pub pos_x: f32,
+    pub pos_y: f32,
+    pub pos_z: f32,
+
+    pub dir_x: f32,
+    pub dir_y: f32,
+    pub dir_z: f32,
+
+    pub mode: u8,
+}
+
+#[derive(SpacetimeType)]
+pub struct MovementCommand {
+    pub character_id: u128,
+    pub pos_x: f32,
+    pub pos_y: f32,
+    pub pos_z: f32,
+    pub dir_x: f32,
+    pub dir_y: f32,
+    pub dir_z: f32,
+    pub mode: u8,
 }
 
 
 #[reducer]
-pub fn select_character(
-    ctx: &ReducerContext,
-    character_id: u128
-) {
+pub fn move_character_command(ctx: &ReducerContext, cmd: MovementCommand) {
     let identity = ctx.sender;
-    let Some(character) = ctx.db.characters()
-        .identity()
-        .find(identity) else {
-        warn!("Character with id {} were not found by identity: {}", character_id, identity);
-        return;
-    };
-
-    ctx.db.session_characters().insert(SessionCharacter {
-        character_id: character.character_id,
-        identity: identity
+    ctx.db.character_movement_commands().insert(CharacterMovementCommands {
+        id: 0,
+        identity,
+        character_id: cmd.character_id,
+        pos_x: cmd.pos_x,
+        pos_y: cmd.pos_y,
+        pos_z: cmd.pos_z,
+        dir_x: cmd.dir_x,
+        dir_y: cmd.dir_y,
+        dir_z: cmd.dir_z,
+        mode: cmd.mode,
     });
+}
 
-    if let Some(movement) = ctx.db.character_movement().character_id().find(character_id) {
-        ctx.db.session_character_movement().insert(SessionCharacterMovement {
-            character_id: character.character_id,
-            identity: identity,
-            pos_x: movement.pos_x,
-            pos_y: movement.pos_y,
-            pos_z: movement.pos_z,
+// logic heere
+pub fn process_movement_commands(ctx: &ReducerContext) {
+    for command in  ctx.db.character_movement_commands().iter() {
 
-            dir_x: movement.dir_x,
-            dir_y: movement.dir_y,
-            dir_z: movement.dir_z,
+        ctx.db
+            .character_movement()
+            .identity()
+            .insert_or_update(CharacterMovement {
+                identity: ctx.identity(),
+                character_id: command.character_id,
+                pos_x: command.pos_x,
+                pos_y: command.pos_y,
+                pos_z: command.pos_z,
+                dir_x: command.dir_x,
+                dir_y: command.dir_y,
+                dir_z: command.dir_z,
+                mode: command.mode
+            });
 
-            mode: movement.mode,
-        });
+        ctx.db
+            .character_movement_commands()
+            .id()
+            .delete(command.id);
     }
 }
 
-fn generate_id(ctx: &ReducerContext) -> u128 {
-    let rand = ctx.rng().gen::<u128>();
-    let sender_hash = fxhash::hash64(&ctx.sender.to_u256()) as u128;
-    (rand << 64) | sender_hash
-}
 
 
-pub fn move_session_to_persistence(ctx: &ReducerContext) {
-    let identity = ctx.identity();
-    let Some(selected_character) = ctx.db.session_characters().identity().find(&identity) else {
-        warn!("selected character {} was not found in session characters",  identity);
-        return;
-        return;
-    };
-    // move character
-    if let Some(mut character) = ctx.db.characters().character_id().find(&selected_character.character_id) {
-        character.online = false;
-        ctx.db().characters().character_id().update(character);
-        ctx.db().session_characters().identity().delete(selected_character.identity);
-    }
-
-    // move character movement
-    if let Some(movement_session) = ctx.db.session_character_movement().identity().find(identity) {
-        ctx.db.character_movement().insert(CharacterMovement {
-            character_id: movement_session.character_id,
-            pos_x: movement_session.pos_x,
-            pos_y: movement_session.pos_y,
-            pos_z: movement_session.pos_z,
-
-            dir_x: movement_session.dir_x,
-            dir_y: movement_session.dir_y,
-            dir_z: movement_session.dir_z,
-
-            mode: movement_session.mode,
-        });
-    }
-
-    // move other things
-}
 
 
-pub fn move_persistence_to_session(ctx: &ReducerContext, character_id: u128 ) {
-    let identity = ctx.identity();
-    let Some(character) = ctx.db.characters()
-        .identity()
-        .find(identity)
-    else {
-        warn!("Character with id {} were not found by identity: {}", character_id, identity);
-        return;
-    };
 
 
-    ctx.db.session_characters().insert(SessionCharacter {
-        character_id: character.character_id,
-        identity: identity
-    });
-
-    if let Some(movement) = ctx.db.character_movement().character_id().find(character_id) {
-        ctx.db.session_character_movement().insert(SessionCharacterMovement {
-            character_id: character.character_id,
-            identity: identity,
-            pos_x: movement.pos_x,
-            pos_y: movement.pos_y,
-            pos_z: movement.pos_z,
-
-            dir_x: movement.dir_x,
-            dir_y: movement.dir_y,
-            dir_z: movement.dir_z,
-
-            mode: movement.mode,
-        });
-    }
-}

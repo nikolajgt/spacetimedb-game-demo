@@ -10,6 +10,7 @@ use rsa::pkcs8::DecodePrivateKey;
 use rsa::signature::digest::Digest;
 use rsa::traits::PublicKeyParts;
 use serde::Serialize;
+use crate::error::AppError;
 use crate::shared::{CharacterClaims, UserClaims};
 
 pub struct Claims {
@@ -77,7 +78,7 @@ impl CharacterTokenHandler {
         &self, 
         character_id: &String, 
         user_claims: &UserClaims
-    ) -> Result<String, Box<dyn std::error::Error>> {
+    ) -> Result<(String, CharacterClaims), Box<dyn std::error::Error>> {
         let now = Utc::now();
         let expiration = now
             .checked_add_signed(Duration::hours(24))
@@ -90,7 +91,8 @@ impl CharacterTokenHandler {
             aud: vec![self.audience.clone()],
             iat: now.timestamp() as usize,
             exp: expiration,
-            char_id: character_id.clone(),
+            character_id: character_id.clone(),
+            is_premium: user_claims.is_premium.clone(),
         };
         
         let encoding_key = EncodingKey::from_rsa_pem(self.private_key.to_pkcs1_pem(LineEnding::LF)?.as_bytes())
@@ -100,8 +102,20 @@ impl CharacterTokenHandler {
         let token = encode(&header, &character_claims, &encoding_key)
             .context("Failed to encode JWT")?;
 
-        Ok(token)
+        Ok((token, character_claims))
     }
+
+    /// does not validate token, only extracting claims
+    pub fn extract_claims(token: &str) -> Result<CharacterClaims, AppError> {
+        let token_data = decode::<CharacterClaims>(
+            token,
+            &DecodingKey::from_secret("".as_ref()), 
+            &Validation::new(Algorithm::RS256),     
+        ).map_err(|e| AppError(anyhow::anyhow!("Token decode failed: {}", e)))?;
+
+        Ok(token_data.claims)
+    }
+
 
     pub fn validate_token(&self, token: &str) -> Result<TokenData<CharacterClaims>, Box<dyn std::error::Error>> {
         let decoding_key = DecodingKey::from_rsa_pem(self.public_key.to_pkcs1_pem(LineEnding::LF)?.as_bytes())

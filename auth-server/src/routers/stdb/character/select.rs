@@ -9,6 +9,7 @@ use uuid::Uuid;
 use crate::db::character::Character;
 use crate::error::AppError;
 use crate::routers::stdb::StdbAppState;
+use crate::routers::stdb::transfer_character::transfer_character;
 use crate::tools::header::extract_auth_token;
 use crate::tools::validate_tokens::validate_user_token;
 
@@ -33,6 +34,7 @@ pub async fn select_character(
     
     let character_id = Uuid::parse_str(&payload.character_id)?;
     let user_id = Uuid::parse_str(&user_claims.sub)?;
+    // query is only for guarding and can be made better
     let character = query_as!(
             Character,
             r#"
@@ -47,10 +49,12 @@ pub async fn select_character(
         .await
         .map_err(|_| AppError(anyhow::anyhow!("Character not found for user with id: {}", &payload.character_id)))?;
     
-    let character_token = state.character_token_handler.generate_character_token(&payload.character_id, &user_claims)
+    
+    
+    let (character_token, claims) = state.character_token_handler.generate_character_token(&payload.character_id, &user_claims)
         .map_err(|err| AppError(anyhow::anyhow!("Failed to issue character token: {:?}", err)))?;
 
+    transfer_character(state.db_pool.clone(), "game-demo".to_string(), &character_token, &claims).await?;
     Ok(Json(CharacterAuthToken { token: character_token }))
-    
 }
 

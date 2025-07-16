@@ -12,7 +12,7 @@ use crate::routers::stdb::jwks::{jwks, openid_config};
 pub mod jwks;
 pub mod character;
 pub mod character_token_handler;
-
+mod transfer_character;
 
 pub fn stdb_router(
     pool: Arc<Pool<Postgres>>,
