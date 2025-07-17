@@ -1,0 +1,2 @@
+use spacetimedb::{ReducerContext, Table};
+

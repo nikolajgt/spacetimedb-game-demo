@@ -90,7 +90,7 @@ impl RegisterPage {
         {
             Ok(response) if response.status().is_success() => Ok(()),
             Ok(response) => Err(format!("User registration failed: HTTP {}", response.status())),
-            Err(e) => Err(format!("Request error while registration user: {e}")),
+            Err(e) => Err(format!("Request error while registration auth: {e}")),
         }
     }
 

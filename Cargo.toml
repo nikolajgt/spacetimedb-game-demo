@@ -4,4 +4,12 @@
 
 [workspace]
 resolver = "3"
-members = ["server", "client", "shared", "auth-server", "client-launcher"]
+members = [
+    "api/auth",
+    "api/character",
+    "api/server", "api/shared",
+
+    "game/client",
+    "game/server",
+
+    "shared"]

@@ -3,8 +3,8 @@ version: "3.8"
 services:
   server:
     build:
-      context: ./server
-    container_name: spacetime-server
+      context: game/server
+    container_name: spacetime-character-game-server
     ports:
       - "3000:3000"  # Expose to host
     networks:
@@ -12,7 +12,7 @@ services:
 
   client1:
     build:
-      context: ./client
+      context: game/client
     container_name: spacetime-client1
     depends_on:
       - server
@@ -21,7 +21,7 @@ services:
 
   client2:
     build:
-      context: ./client
+      context: game/client
     container_name: spacetime-client2
     depends_on:
       - server
